@@ -48,12 +48,13 @@ export default function ProjectEPage() {
             WAITING FOR INPUT...
           </div>
 
-          {/* 중앙 3D 캔버스 (순수 뷰어) */}
+         {/* 중앙 3D 캔버스 (순수 뷰어) */}
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="w-[800px] h-full cursor-grab active:cursor-grabbing">
               <Canvas shadows camera={{ position: [0, 0, 6], fov: 35 }}>
                 <Suspense fallback={null}>
-                  <Stage environment="night" intensity={0.5} contactShadows={{ opacity: 0.3 }}>
+                  {/* contactShadows 옵션을 제거하여 빌드 에러를 해결했습니다 */}
+                  <Stage environment="night" intensity={0.5}>
                     <HumanModel />
                   </Stage>
                   <OrbitControls enablePan={false} makeDefault autoRotate autoRotateSpeed={0.5} />
@@ -100,3 +101,4 @@ export default function ProjectEPage() {
   );
 
 }
+
