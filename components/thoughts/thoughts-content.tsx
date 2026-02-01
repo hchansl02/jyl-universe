@@ -38,11 +38,16 @@ export function ThoughtsContent() {
     }
   };
 
-  // 삭제 기능
+ // 삭제 기능
   const deleteThought = async (id: number) => {
     const { error } = await supabase.from("thoughts").delete().eq("id", id);
-    if (!error) fetchPlans(); // 이 부분 fetchPlans 대신 fetchThoughts()로 수정 권장
-    else fetchThoughts(); 
+    
+    // 성공하든 실패하든 최신 목록을 가져오도록 fetchThoughts()로 통일합니다.
+    if (!error) {
+      fetchThoughts();
+    } else {
+      fetchThoughts();
+    }
   };
 
   return (
@@ -108,4 +113,5 @@ export function ThoughtsContent() {
       </div>
     </div>
   );
+
 }
