@@ -53,7 +53,7 @@ export default function ProjectEPage() {
             <div className="w-[800px] h-full cursor-grab active:cursor-grabbing">
               <Canvas shadows camera={{ position: [0, 0, 6], fov: 35 }}>
                 <Suspense fallback={null}>
-                  <Stage environment="night" intensity={0.5} contactShadow={{ opacity: 0.3 }}>
+                  <Stage environment="night" intensity={0.5} contactShadows={{ opacity: 0.3 }}>
                     <HumanModel />
                   </Stage>
                   <OrbitControls enablePan={false} makeDefault autoRotate autoRotateSpeed={0.5} />
@@ -98,4 +98,5 @@ export default function ProjectEPage() {
       </footer>
     </main>
   );
+
 }
