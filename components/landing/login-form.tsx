@@ -5,12 +5,18 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-// 1. Supabase 클라이언트 불러오기 (경로가 다를 경우 @/utils/supabase 등으로 수정)
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+// 최신 방식인 @supabase/ssr 사용하여 클라이언트 생성
+import { createBrowserClient } from "@supabase/ssr";
 
 export function LoginForm() {
   const router = useRouter();
-  const supabase = createClientComponentClient(); // 2. 클라이언트 초기화
+  
+  // Supabase 클라이언트 초기화 (환경 변수 사용)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ id: "", password: "" });
   const [error, setError] = useState("");
@@ -21,12 +27,12 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // 3. 아이디가 'sunchansol02'라면 자동으로 이메일 형식으로 변환
+      // 아이디 입력 시 'sunchansol02'만 쳐도 되도록 이메일 형식으로 자동 변환
       const loginEmail = formData.id.includes("@") 
         ? formData.id 
         : `${formData.id}@gmail.com`;
 
-      // 4. Supabase 진짜 로그인 시도
+      // Supabase 실제 인증 시도
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: formData.password,
