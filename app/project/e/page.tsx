@@ -65,9 +65,9 @@ export default function AnalysisPage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
       </div>
 
-      {/* [수정됨] 뒤로가기 버튼: /project 경로로 연결 */}
+      {/* [수정됨] 뒤로가기 경로 변경: /dashboard/project */}
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+        <Link href="/dashboard/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-bold tracking-widest">BACK TO PROJECTS</span>
         </Link>
