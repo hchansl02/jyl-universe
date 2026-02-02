@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Edit2, Save, Activity, Flame } from "lucide-react";
+import { ArrowLeft, Edit2, Save, Activity, Flame, Sparkles } from "lucide-react"; // Sparkles 아이콘 추가
 import Link from "next/link";
+import GeminiChat from "@/components/GeminiChat"; // 1. 채팅창 컴포넌트 불러오기
 
 export default function InbodyProfilePage() {
   const supabase = createBrowserClient(
@@ -71,7 +72,7 @@ export default function InbodyProfilePage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03)_0%,_transparent_50%)]" />
       </div>
 
-      {/* [수정됨] 뒤로가기 경로: /project/e */}
+      {/* 뒤로가기 경로: /project/e */}
       <div className="w-full max-w-2xl flex items-center justify-between mb-8 z-10">
         <Link href="/project/e" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
@@ -170,7 +171,7 @@ export default function InbodyProfilePage() {
         </section>
 
         {/* SECTION 4: ROUTINE */}
-        <section className="relative pb-10">
+        <section className="relative">
           <div className="flex justify-between items-end mb-4 px-2">
             <h2 className="text-lg font-light tracking-[0.2em] text-white">WEEKLY ROUTINE</h2>
             <button onClick={() => editing === 'routine' ? saveConfig() : setEditing('routine')} className="text-white/40 hover:text-white">
@@ -197,6 +198,20 @@ export default function InbodyProfilePage() {
             ))}
           </div>
         </section>
+
+        {/* [추가됨] SECTION 5: AI COACH */}
+        <section className="relative pt-8 pb-10">
+          <div className="flex justify-between items-end mb-6 px-2">
+            <h2 className="text-lg font-light tracking-[0.2em] text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" /> AI COACH
+            </h2>
+          </div>
+          {/* 제미나이 채팅창 배치 */}
+          <div className="h-[500px]">
+            <GeminiChat />
+          </div>
+        </section>
+
       </main>
     </div>
   );
