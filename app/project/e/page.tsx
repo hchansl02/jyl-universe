@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area, BarChart, Bar, Cell 
+  AreaChart, Area, BarChart, Bar 
 } from "recharts";
-import { Activity, Moon, Scale, Utensils, Zap, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { Activity, Moon, Scale, Utensils } from "lucide-react";
 
-// 데이터 타입 정의
 interface HealthLog {
   date: string;
   weight: number;
@@ -29,14 +27,13 @@ export default function AnalysisPage() {
   const [data, setData] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
       const { data: logs } = await supabase
         .from("health_logs")
         .select("*")
-        .order("date", { ascending: true }) // 날짜순 정렬
-        .limit(7); // 최근 7일치만 (추세 보기에 적당)
+        .order("date", { ascending: true })
+        .limit(7);
       
       if (logs) setData(logs);
       setLoading(false);
@@ -44,7 +41,6 @@ export default function AnalysisPage() {
     fetchData();
   }, []);
 
-  // 커스텀 툴팁 (마우스 올렸을 때 나오는 설명창)
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -68,16 +64,16 @@ export default function AnalysisPage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
       </div>
 
-      {/* 헤더 */}
+      {/* 헤더 수정됨 */}
       <header className="mb-10 text-center z-10">
-        <h1 className="text-xs font-mono text-muted-foreground/60 tracking-[0.4em] mb-2">BIO-ENVIRONMENTAL SYSTEM</h1>
-        <h2 className="text-3xl font-light text-foreground tracking-[0.1em]">ANALYSIS</h2>
+        <h1 className="text-3xl font-light text-foreground tracking-[0.1em] mb-1">PROJECT E DASHBOARD</h1>
+        <h2 className="text-xs font-mono text-muted-foreground/60 tracking-[0.4em]">OVERVIEW</h2>
       </header>
 
       {/* 메인 차트 그리드 */}
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 z-10">
         
-        {/* 1. 체중 & 골격근량 추세 (Line Chart) */}
+        {/* 1. 체중 & 골격근량 (Weight) */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Scale className="w-4 h-4" /></div>
@@ -100,7 +96,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* 2. 칼로리 밸런스 (Bar Chart) */}
+        {/* 2. 칼로리 밸런스 (Calories) */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400"><Utensils className="w-4 h-4" /></div>
@@ -122,8 +118,8 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* 3. 수면 패턴 (Area Chart) */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
+        {/* 3. 수면 패턴 (Sleep) - [수정됨] md:col-span-2로 가로로 꽉 차게 변경 */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors md:col-span-2">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Moon className="w-4 h-4" /></div>
             <div>
@@ -149,30 +145,11 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* 4. 활동량 (Progress Circle or Simple Chart) */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Activity className="w-32 h-32 text-white" />
-          </div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-green-500/10 rounded-lg text-green-400"><Zap className="w-4 h-4" /></div>
-            <div>
-              <h3 className="text-sm font-medium text-white/90 tracking-wide">ACTIVITY SCORE</h3>
-              <p className="text-[10px] text-white/40">Weekly Average</p>
-            </div>
-          </div>
-          <div className="flex items-end gap-2 mt-8">
-            <span className="text-5xl font-light text-white">82</span>
-            <span className="text-sm text-white/40 mb-2">/ 100</span>
-          </div>
-          <p className="text-xs text-white/30 mt-4 font-mono">
-            Optimized condition based on recent logs.
-          </p>
-        </div>
+        {/* Activity Score 제거됨 */}
 
       </div>
 
-      {/* 하단 네비게이션 버튼 (기존 위치 유지) */}
+      {/* 하단 버튼 (그대로 유지) */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
         <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
           <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
