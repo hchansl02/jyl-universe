@@ -6,7 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, BarChart, Bar 
 } from "recharts";
-import { Activity, Moon, Scale, Utensils } from "lucide-react";
+import { Activity, Moon, Scale, Utensils, ArrowLeft } from "lucide-react"; // ArrowLeft 추가됨
 import Link from "next/link"; 
 
 interface HealthLog {
@@ -63,6 +63,14 @@ export default function AnalysisPage() {
        {/* 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none">
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
+      </div>
+
+      {/* [추가됨] 뒤로가기 버튼 (좌측 상단) */}
+      <div className="absolute top-8 left-8 z-50">
+        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-xs font-bold tracking-widest">BACK TO DASHBOARD</span>
+        </Link>
       </div>
 
       <header className="mb-10 text-center z-10">
@@ -149,7 +157,6 @@ export default function AnalysisPage() {
       {/* 하단 버튼 영역 */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
         
-        {/* INBODY 버튼 (연결됨) */}
         <Link href="/project/e/inbody">
           <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
             <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
@@ -157,14 +164,12 @@ export default function AnalysisPage() {
           </button>
         </Link>
 
-        {/* SKIN 버튼 (여기가 수정되었습니다: Link 추가됨) */}
         <Link href="/project/e/skin">
           <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
             <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">SKIN</span>
           </button>
         </Link>
 
-      {/* ETC (연결됨!) */}
         <Link href="/project/e/etc">
           <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
             <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">ETC</span>
@@ -175,4 +180,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
