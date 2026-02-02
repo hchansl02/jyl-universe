@@ -1,104 +1,191 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stage, useGLTF } from "@react-three/drei";
-import { motion } from "framer-motion";
-import { SpaceBackground } from "@/components/dashboard/space-background";
-import { ArrowLeft, Activity, ShieldCheck, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  AreaChart, Area, BarChart, Bar, Cell 
+} from "recharts";
+import { Activity, Moon, Scale, Utensils, Zap, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-// --- 3D 모델 뷰어 (빨간점 제거됨) ---
-function HumanModel() {
-  const { scene } = useGLTF("/models/human.glb");
-
-  return (
-    <group position={[0, -1, 0]}>
-      {/* 순수 3D 모델만 렌더링 */}
-      <primitive object={scene} scale={0.8} />
-    </group>
-  );
+// 데이터 타입 정의
+interface HealthLog {
+  date: string;
+  weight: number;
+  muscle_mass: number;
+  fat_percent: number;
+  sleep_hours: number;
+  calories_in: number;
+  calories_out: number;
 }
 
-export default function ProjectEPage() {
-  // 카테고리 상태 관리 (현재 페이지 표시용)
-  const [category, setCategory] = useState("inbody");
+export default function AnalysisPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  return (
-    <main className="relative min-h-screen bg-black text-white overflow-hidden flex flex-col items-center">
-      <SpaceBackground />
+  const [data, setData] = useState<HealthLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      {/* 상단 뒤로가기 버튼 */}
-      <div className="absolute top-8 left-8 z-30">
-        <Link href="/project" className="flex items-center text-zinc-500 hover:text-white transition-colors text-xs tracking-[0.2em] group">
-          <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-          BACK TO PROJECTS
-        </Link>
-      </div>
+  // 데이터 불러오기
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: logs } = await supabase
+        .from("health_logs")
+        .select("*")
+        .order("date", { ascending: true }) // 날짜순 정렬
+        .limit(7); // 최근 7일치만 (추세 보기에 적당)
+      
+      if (logs) setData(logs);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
 
-      {/* 메인 콘텐츠 영역 */}
-      <div className="relative z-10 w-full max-w-7xl flex flex-col items-center pt-16 px-6 h-[calc(100vh-40px)]">
-        <h1 className="text-3xl font-extralight tracking-[0.4em] mb-2 uppercase">Analysis</h1>
-        <p className="text-zinc-500 text-[10px] tracking-[0.3em] uppercase mb-4 text-center font-mono">Bio-Environmental System</p>
-
-        <div className="relative flex-grow w-full flex items-center justify-between">
-          
-          {/* 좌측 패널 (지금은 비워둠 - 나중에 기능 추가 시 활성화) */}
-          <div className="w-80 z-20 min-h-[200px] flex items-center justify-center text-zinc-800 text-xs tracking-widest opacity-30">
-            WAITING FOR INPUT...
-          </div>
-
-         {/* 중앙 3D 캔버스 (순수 뷰어) */}
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="w-[800px] h-full cursor-grab active:cursor-grabbing">
-              <Canvas shadows camera={{ position: [0, 0, 6], fov: 35 }}>
-                <Suspense fallback={null}>
-                  {/* contactShadows 옵션을 제거하여 빌드 에러를 해결했습니다 */}
-                  <Stage environment="night" intensity={0.5}>
-                    <HumanModel />
-                  </Stage>
-                  <OrbitControls enablePan={false} makeDefault autoRotate autoRotateSpeed={0.5} />
-                </Suspense>
-              </Canvas>
-            </div>
-          </div>
-
-          {/* 우측 데이터 요약 (디자인 요소로 유지) */}
-          <div className="w-80 z-20">
-            <div className="p-6 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-sm">
-              <h4 className="text-[10px] tracking-widest text-zinc-600 mb-6 uppercase font-bold text-center">Bio-Score</h4>
-              <div className="text-4xl font-extralight mb-2 text-center text-white/90">--<span className="text-sm text-zinc-500 ml-1">/100</span></div>
-              <div className="w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-zinc-800 w-full" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 하단 카테고리 탭 (페이지 이동 기능) */}
-        <div className="relative z-30 mb-8 flex gap-4 p-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
-          {[
-            { id: "inbody", label: "인바디", icon: Activity, href: "/project/e/inbody" },
-            { id: "skin", label: "피부", icon: ShieldCheck, href: "/project/e/skin" },
-            { id: "etc", label: "기타", icon: Zap, href: "/project/e/etc" },
-          ].map((tab) => (
-            <Link key={tab.id} href={tab.href}>
-              <div className="flex items-center gap-2 px-10 py-3 rounded-full text-[11px] tracking-[0.2em] transition-all duration-500 text-zinc-500 hover:text-white hover:bg-white/5 cursor-pointer">
-                <tab.icon size={14} />
-                {tab.label}
-              </div>
-            </Link>
+  // 커스텀 툴팁 (마우스 올렸을 때 나오는 설명창)
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-black/90 border border-white/10 p-3 rounded-lg shadow-xl">
+          <p className="text-xs text-white/50 mb-1">{label}</p>
+          {payload.map((p: any, index: number) => (
+            <p key={index} className="text-xs font-mono" style={{ color: p.color }}>
+              {p.name}: {p.value}
+            </p>
           ))}
         </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center relative overflow-hidden pt-20 px-6 pb-32">
+       {/* 배경 효과 */}
+      <div className="fixed inset-0 pointer-events-none">
+         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
       </div>
 
-      <footer className="fixed bottom-6 w-full text-center z-10">
-        <p className="text-[9px] tracking-[0.8em] text-zinc-700 uppercase">
-          © 2026 JYL UNIVERSE
-        </p>
-      </footer>
-    </main>
+      {/* 헤더 */}
+      <header className="mb-10 text-center z-10">
+        <h1 className="text-xs font-mono text-muted-foreground/60 tracking-[0.4em] mb-2">BIO-ENVIRONMENTAL SYSTEM</h1>
+        <h2 className="text-3xl font-light text-foreground tracking-[0.1em]">ANALYSIS</h2>
+      </header>
+
+      {/* 메인 차트 그리드 */}
+      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 z-10">
+        
+        {/* 1. 체중 & 골격근량 추세 (Line Chart) */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Scale className="w-4 h-4" /></div>
+            <div>
+              <h3 className="text-sm font-medium text-white/90 tracking-wide">BODY COMPOSITION</h3>
+              <p className="text-[10px] text-white/40">Weight vs Muscle Mass</p>
+            </div>
+          </div>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                <XAxis dataKey="date" hide />
+                <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={false} name="Weight" />
+                <Line type="monotone" dataKey="muscle_mass" stroke="#10b981" strokeWidth={2} dot={false} name="Muscle" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 2. 칼로리 밸런스 (Bar Chart) */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400"><Utensils className="w-4 h-4" /></div>
+            <div>
+              <h3 className="text-sm font-medium text-white/90 tracking-wide">CALORIE BALANCE</h3>
+              <p className="text-[10px] text-white/40">Intake vs Burned</p>
+            </div>
+          </div>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                <XAxis dataKey="date" hide />
+                <Tooltip content={<CustomTooltip />} cursor={{fill: 'transparent'}} />
+                <Bar dataKey="calories_in" fill="#f97316" radius={[4, 4, 0, 0]} name="In" />
+                <Bar dataKey="calories_out" fill="#ef4444" radius={[4, 4, 0, 0]} name="Out" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 3. 수면 패턴 (Area Chart) */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Moon className="w-4 h-4" /></div>
+            <div>
+              <h3 className="text-sm font-medium text-white/90 tracking-wide">SLEEP CYCLE</h3>
+              <p className="text-[10px] text-white/40">Duration Trend</p>
+            </div>
+          </div>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                <XAxis dataKey="date" hide />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="sleep_hours" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorSleep)" name="Sleep" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 4. 활동량 (Progress Circle or Simple Chart) */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <Activity className="w-32 h-32 text-white" />
+          </div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-green-500/10 rounded-lg text-green-400"><Zap className="w-4 h-4" /></div>
+            <div>
+              <h3 className="text-sm font-medium text-white/90 tracking-wide">ACTIVITY SCORE</h3>
+              <p className="text-[10px] text-white/40">Weekly Average</p>
+            </div>
+          </div>
+          <div className="flex items-end gap-2 mt-8">
+            <span className="text-5xl font-light text-white">82</span>
+            <span className="text-sm text-white/40 mb-2">/ 100</span>
+          </div>
+          <p className="text-xs text-white/30 mt-4 font-mono">
+            Optimized condition based on recent logs.
+          </p>
+        </div>
+
+      </div>
+
+      {/* 하단 네비게이션 버튼 (기존 위치 유지) */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
+        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+          <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
+          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">INBODY</span>
+        </button>
+        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">SKIN</span>
+        </button>
+        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">ETC</span>
+        </button>
+      </div>
+
+    </div>
   );
-
 }
-
