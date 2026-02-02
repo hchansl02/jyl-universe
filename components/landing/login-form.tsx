@@ -5,13 +5,10 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-// 최신 방식인 @supabase/ssr 사용하여 클라이언트 생성
 import { createBrowserClient } from "@supabase/ssr";
 
 export function LoginForm() {
   const router = useRouter();
-  
-  // Supabase 클라이언트 초기화 (환경 변수 사용)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -27,12 +24,11 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // 아이디 입력 시 'sunchansol02'만 쳐도 되도록 이메일 형식으로 자동 변환
+      // 이제 hchansl02 라고 입력하면 자동으로 @gmail.com을 붙여서 인증합니다.
       const loginEmail = formData.id.includes("@") 
         ? formData.id 
         : `${formData.id}@gmail.com`;
 
-      // Supabase 실제 인증 시도
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: formData.password,
@@ -45,7 +41,6 @@ export function LoginForm() {
       }
 
       if (data.user) {
-        // 로그인 성공 시 대시보드로 이동
         router.push("/dashboard");
       }
     } catch (err) {
@@ -67,7 +62,6 @@ export function LoginForm() {
             disabled={isLoading}
           />
         </div>
-
         <div className="relative">
           <Input
             type="password"
