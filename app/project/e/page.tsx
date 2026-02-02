@@ -146,9 +146,10 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* [수정됨] 버튼 영역: Link로 감싸서 클릭하면 /project/e/inbody 로 이동 */}
+      {/* 하단 버튼 영역 */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
         
+        {/* INBODY 버튼 (연결됨) */}
         <Link href="/project/e/inbody">
           <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
             <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
@@ -156,9 +157,14 @@ export default function AnalysisPage() {
           </button>
         </Link>
 
-        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
-          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">SKIN</span>
-        </button>
+        {/* SKIN 버튼 (여기가 수정되었습니다: Link 추가됨) */}
+        <Link href="/project/e/skin">
+          <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+            <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">SKIN</span>
+          </button>
+        </Link>
+
+        {/* ETC 버튼 (아직 연결 안 됨) */}
         <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
           <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">ETC</span>
         </button>
