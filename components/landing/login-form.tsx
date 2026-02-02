@@ -1,14 +1,16 @@
 "use client";
 
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+// 1. Supabase 클라이언트 불러오기 (경로가 다를 경우 @/utils/supabase 등으로 수정)
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function LoginForm() {
   const router = useRouter();
+  const supabase = createClientComponentClient(); // 2. 클라이언트 초기화
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ id: "", password: "" });
   const [error, setError] = useState("");
@@ -18,12 +20,30 @@ export function LoginForm() {
     setError("");
     setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // 3. 아이디가 'sunchansol02'라면 자동으로 이메일 형식으로 변환
+      const loginEmail = formData.id.includes("@") 
+        ? formData.id 
+        : `${formData.id}@gmail.com`;
 
-    if (formData.id && formData.password) {
-      router.push("/dashboard");
-    } else {
-      setError("Please enter your credentials");
+      // 4. Supabase 진짜 로그인 시도
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: formData.password,
+      });
+
+      if (authError) {
+        setError("Invalid ID or PASSWORD");
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // 로그인 성공 시 대시보드로 이동
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
       setIsLoading(false);
     }
   };
@@ -55,7 +75,7 @@ export function LoginForm() {
       </div>
 
       {error && (
-        <p className="text-muted-foreground text-xs font-mono text-center">{error}</p>
+        <p className="text-[#ff4d4d] text-xs font-mono text-center animate-pulse">{error}</p>
       )}
 
       <Button
@@ -75,7 +95,7 @@ export function LoginForm() {
       </Button>
 
       <p className="text-center text-[10px] text-muted-foreground/30 font-mono tracking-wider">
-        Press Enter to proceed
+        Authorized Access Only
       </p>
     </form>
   );
