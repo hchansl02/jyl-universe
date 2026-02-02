@@ -6,7 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, BarChart, Bar 
 } from "recharts";
-import { Activity, Moon, Scale, Utensils, ArrowLeft } from "lucide-react"; // ArrowLeft 추가됨
+import { Activity, Moon, Scale, Utensils, ArrowLeft } from "lucide-react";
 import Link from "next/link"; 
 
 interface HealthLog {
@@ -65,11 +65,11 @@ export default function AnalysisPage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
       </div>
 
-      {/* [추가됨] 뒤로가기 버튼 (좌측 상단) */}
+      {/* [수정됨] 뒤로가기 버튼: /project 경로로 연결 */}
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+        <Link href="/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs font-bold tracking-widest">BACK TO DASHBOARD</span>
+          <span className="text-xs font-bold tracking-widest">BACK TO PROJECTS</span>
         </Link>
       </div>
 
