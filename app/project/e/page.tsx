@@ -164,12 +164,15 @@ export default function AnalysisPage() {
           </button>
         </Link>
 
-        {/* ETC 버튼 (아직 연결 안 됨) */}
-        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
-          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">ETC</span>
-        </button>
+      {/* ETC (연결됨!) */}
+        <Link href="/project/e/etc">
+          <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+            <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">ETC</span>
+          </button>
+        </Link>
       </div>
 
     </div>
   );
 }
+
