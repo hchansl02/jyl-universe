@@ -7,7 +7,7 @@ import {
   AreaChart, Area, BarChart, Bar 
 } from "recharts";
 import { Activity, Moon, Scale, Utensils } from "lucide-react";
-import Link from "next/link"; // Link 컴포넌트 필수!
+import Link from "next/link"; 
 
 interface HealthLog {
   date: string;
@@ -146,7 +146,7 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* [수정됨] 버튼 영역: Link로 감싸서 클릭하면 이동하게 만듦 */}
+      {/* [수정됨] 버튼 영역: Link로 감싸서 클릭하면 /project/e/inbody 로 이동 */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
         
         <Link href="/project/e/inbody">
