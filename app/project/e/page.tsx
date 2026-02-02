@@ -7,6 +7,7 @@ import {
   AreaChart, Area, BarChart, Bar 
 } from "recharts";
 import { Activity, Moon, Scale, Utensils } from "lucide-react";
+import Link from "next/link"; // Link 컴포넌트 필수!
 
 interface HealthLog {
   date: string;
@@ -64,16 +65,15 @@ export default function AnalysisPage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
       </div>
 
-      {/* 헤더 수정됨 */}
       <header className="mb-10 text-center z-10">
         <h1 className="text-3xl font-light text-foreground tracking-[0.1em] mb-1">PROJECT E DASHBOARD</h1>
         <h2 className="text-xs font-mono text-muted-foreground/60 tracking-[0.4em]">OVERVIEW</h2>
       </header>
 
-      {/* 메인 차트 그리드 */}
+      {/* 차트 영역 */}
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 z-10">
         
-        {/* 1. 체중 & 골격근량 (Weight) */}
+        {/* Weight Chart */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Scale className="w-4 h-4" /></div>
@@ -96,7 +96,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* 2. 칼로리 밸런스 (Calories) */}
+        {/* Calories Chart */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400"><Utensils className="w-4 h-4" /></div>
@@ -118,7 +118,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* 3. 수면 패턴 (Sleep) - [수정됨] md:col-span-2로 가로로 꽉 차게 변경 */}
+        {/* Sleep Chart */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors md:col-span-2">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Moon className="w-4 h-4" /></div>
@@ -144,17 +144,18 @@ export default function AnalysisPage() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Activity Score 제거됨 */}
-
       </div>
 
-      {/* 하단 버튼 (그대로 유지) */}
+      {/* [수정됨] 버튼 영역: Link로 감싸서 클릭하면 이동하게 만듦 */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
-        <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
-          <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
-          <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">INBODY</span>
-        </button>
+        
+        <Link href="/project/e/inbody">
+          <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
+            <Activity className="w-3 h-3 text-white/50 group-hover:text-white" />
+            <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">INBODY</span>
+          </button>
+        </Link>
+
         <button className="flex items-center gap-2 px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-full hover:border-white/30 hover:bg-white/5 transition-all group">
           <span className="text-[10px] font-mono text-white/60 tracking-widest group-hover:text-white">SKIN</span>
         </button>
