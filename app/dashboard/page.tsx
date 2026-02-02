@@ -1,88 +1,121 @@
-import { SpaceBackground } from "@/components/dashboard/space-background";
-import { CenterTasks } from "@/components/dashboard/center-tasks";
-import { NavCard } from "@/components/dashboard/nav-card";
-import { Orbit } from "lucide-react";
+"use client";
 
-export default function Dashboard() {
+import { useState, useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+import { Plus, Trash2, CheckCircle2, Circle, Loader2 } from "lucide-react";
+
+export function CenterTasks() {
+  const [todos, setTodos] = useState<any[]>([]);
+  const [newTodo, setNewTodo] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // 1. 할 일 불러오기
+  const fetchTodos = async () => {
+    const { data, error } = await supabase
+      .from("todos")
+      .select("*")
+      .order("id", { ascending: false });
+    
+    if (!error && data) setTodos(data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => { fetchTodos(); }, []);
+
+  // 2. 추가하기 (엔터 치면 바로 실행)
+  const addTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTodo.trim()) return;
+
+    const { error } = await supabase
+      .from("todos")
+      .insert([{ title: newTodo, is_completed: false }]);
+    
+    if (!error) {
+      setNewTodo("");
+      fetchTodos();
+    }
+  };
+
+  // 3. 체크/해제 (클릭 한 번으로 끝)
+  const toggleTodo = async (id: number, currentStatus: boolean) => {
+    await supabase
+      .from("todos")
+      .update({ is_completed: !currentStatus })
+      .eq("id", id);
+    fetchTodos();
+  };
+
+  // 4. 삭제 (X 버튼)
+  const deleteTodo = async (id: number) => {
+    await supabase.from("todos").delete().eq("id", id);
+    fetchTodos();
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-start relative overflow-hidden">
-      {/* Space background */}
-      <SpaceBackground />
-
-      {/* Subtle vignette - lighter to show more stars */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_30%,_rgba(0,0,0,0.4)_100%)]" />
+    <div className="w-full bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-6 lg:p-8 shadow-2xl">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-sm font-light tracking-[0.2em] text-foreground/60 uppercase">Today Tasks</h2>
+        <span className="text-[10px] font-mono text-muted-foreground/30 uppercase tracking-widest">
+          {todos.length} Active
+        </span>
       </div>
 
-      {/* Main content */}
-      <main className="relative z-10 w-full max-w-5xl px-6 pt-12 pb-16">
-        {/* Header */}
-        <header className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-foreground/6 mb-4">
-            <Orbit className="w-4 h-4 text-foreground/50" strokeWidth={1.5} />
+      {/* 입력창: 여기서 엔터 치면 바로 등록됩니다. */}
+      <form onSubmit={addTodo} className="relative mb-8 group">
+        <input
+          type="text"
+          value={newTodo}
+          onChange={(e) => setNewTodo(e.target.value)}
+          placeholder="What is your mission today?"
+          className="w-full bg-white/[0.05] border border-white/5 rounded-xl px-5 py-4 text-sm font-light tracking-wide focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all"
+        />
+        <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/20 hover:text-white transition-colors">
+          <Plus className="w-5 h-5" />
+        </button>
+      </form>
+
+      {/* 목록창 */}
+      <div className="space-y-3 min-h-[200px]">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-20 text-white/10">
+            <Loader2 className="w-6 h-6 animate-spin" />
           </div>
-          <h1 className="text-xl font-light tracking-[0.25em] text-foreground/85 mb-1">
-            JYL UNIVERSE
-          </h1>
-          <p className="text-[10px] tracking-[0.35em] text-muted-foreground/35 uppercase">
-            Command Center
-          </p>
-        </header>
-
-        {/* T-shaped Layout */}
-        <div className="flex flex-col items-center gap-8">
-          {/* Center Tasks - Upper Center, Largest */}
-          <div className="w-full max-w-2xl">
-            <CenterTasks />
-          </div>
-
-          {/* 4 Category Cards - Horizontal Row */}
-          <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-            <NavCard
-              title="PROJECT"
-              icon="project"
-              description="Active development projects"
-              href="/dashboard/project"
-              count={4}
-            />
-            <NavCard
-              title="YEARLY PLAN"
-              icon="yearly"
-              description="Long-term goals & milestones"
-              href="/yearly"
-              count={5}
-            />
-            <NavCard
-              title="MONTHLY PLAN"
-              icon="monthly"
-              description="This month's priorities"
-              href="/monthly"
-              count={8}
-            />
-            <NavCard
-              title="THOUGHTS"
-              icon="thoughts"
-              description="Ideas & reflections"
-              href="/thoughts"
-              count={12}
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="mt-20 text-center">
-          <p className="text-[10px] text-muted-foreground/15 font-mono tracking-[0.2em]">
-            &copy; 2026 JYL UNIVERSE
-          </p>
-        </footer>
-      </main>
-
-      {/* Corner decorations */}
-      <div className="fixed top-6 left-6 text-[10px] font-mono text-muted-foreground/8 hidden md:block tracking-wider">
-        <span>{"// DASHBOARD"}</span>
-      </div>
-      <div className="fixed bottom-6 right-6 text-[10px] font-mono text-muted-foreground/8 hidden md:block tracking-wider">
-        <span>{"SYS.CONNECTED"}</span>
+        ) : todos.length === 0 ? (
+          <p className="text-center text-xs text-white/10 py-10 font-mono uppercase tracking-[0.2em]">All Systems Clear</p>
+        ) : (
+          todos.map((todo) => (
+            <div 
+              key={todo.id} 
+              className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] group hover:bg-white/[0.05] transition-all duration-300"
+            >
+              <div 
+                className="flex items-center gap-4 cursor-pointer flex-1"
+                onClick={() => toggleTodo(todo.id, todo.is_completed)}
+              >
+                {todo.is_completed ? (
+                  <CheckCircle2 className="w-5 h-5 text-white/80" />
+                ) : (
+                  <Circle className="w-5 h-5 text-white/10 group-hover:text-white/30" />
+                )}
+                <span className={`text-sm tracking-wide transition-all duration-500 ${todo.is_completed ? "text-white/20 line-through" : "text-white/70"}`}>
+                  {todo.title}
+                </span>
+              </div>
+              <button 
+                onClick={() => deleteTodo(todo.id)}
+                className="opacity-0 group-hover:opacity-100 p-2 text-white/10 hover:text-red-400/60 transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
