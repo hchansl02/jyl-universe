@@ -13,7 +13,6 @@ export default function InbodyProfilePage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // 1. 상태 관리
   const [profile, setProfile] = useState({
     weight: 0, muscle_mass: 0, fat_percent: 0,
     calories_in: 0, calories_out: 0, bmr: 0
@@ -26,10 +25,8 @@ export default function InbodyProfilePage() {
 
   const [editing, setEditing] = useState<string | null>(null);
 
-  // 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
-      // 오늘 날짜 로그
       const { data: logData } = await supabase
         .from("health_logs")
         .select("*")
@@ -38,7 +35,6 @@ export default function InbodyProfilePage() {
 
       if (logData) setProfile(logData);
 
-      // 설정(루틴 등) - ID 1번 사용
       const { data: configData } = await supabase
         .from("bio_config")
         .select("*")
@@ -51,9 +47,8 @@ export default function InbodyProfilePage() {
       }
     };
     fetchData();
-  }, [today]); // 의존성 배열 수정
+  }, [today]);
 
-  // 저장 핸들러
   const saveProfile = async () => {
     const { error } = await supabase
       .from("health_logs")
@@ -76,9 +71,9 @@ export default function InbodyProfilePage() {
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03)_0%,_transparent_50%)]" />
       </div>
 
-      {/* 헤더: 뒤로가기 버튼 수정됨 */}
+      {/* [수정됨] 뒤로가기 경로: /project/e */}
       <div className="w-full max-w-2xl flex items-center justify-between mb-8 z-10">
-        <Link href="/analysis" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+        <Link href="/project/e" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-mono tracking-widest">BACK TO DASHBOARD</span>
         </Link>
