@@ -18,7 +18,7 @@ export default function SkinPage() {
   
   // 1. 프로필 데이터
   const [profile, setProfile] = useState({
-    skin_type: "민감성 수분부족지성", // 고정값
+    skin_type: "민감성 수분부족지성",
     improvements: [] as string[],
     routine: {
       cleansing: "",
@@ -30,13 +30,16 @@ export default function SkinPage() {
     }
   });
 
-  // 개선사항 입력 임시 저장소
   const [newImprovement, setNewImprovement] = useState("");
 
-  // 2. 리뷰 데이터
+  // 2. 리뷰 데이터 & 수정 상태 관리
   const [reviews, setReviews] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newReview, setNewReview] = useState({
+  
+  // 수정 중인 리뷰 ID (null이면 새 리뷰 추가 모드)
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+  
+  const [reviewForm, setReviewForm] = useState({
     category: "Toner", name: "", review: "", rating: 3, repurchase: true
   });
 
@@ -50,9 +53,8 @@ export default function SkinPage() {
 
     if (profileData) {
       const improvementsArray = profileData.improvements ? profileData.improvements.split('\n') : [];
-      
       setProfile({
-        skin_type: "민감성 수분부족지성", // DB 값 무시하고 고정 (요청사항 반영)
+        skin_type: "민감성 수분부족지성", 
         improvements: improvementsArray,
         routine: profileData.routine || profile.routine
       });
@@ -72,7 +74,6 @@ export default function SkinPage() {
   // 저장 (통합)
   const saveToDB = async (updatedProfile: typeof profile) => {
     const improvementsString = updatedProfile.improvements.join('\n');
-
     await supabase.from("skin_profile").upsert({
       id: 1,
       skin_type: updatedProfile.skin_type,
@@ -87,13 +88,11 @@ export default function SkinPage() {
     if (!newImprovement.trim()) return;
     const updatedList = [...profile.improvements, newImprovement];
     const updatedProfile = { ...profile, improvements: updatedList };
-    
     setProfile(updatedProfile);
     setNewImprovement("");
     await saveToDB(updatedProfile);
   };
 
-  // 개선사항 삭제
   const deleteImprovement = async (index: number) => {
     const updatedList = profile.improvements.filter((_, i) => i !== index);
     const updatedProfile = { ...profile, improvements: updatedList };
@@ -101,19 +100,49 @@ export default function SkinPage() {
     await saveToDB(updatedProfile);
   };
 
-  // 루틴 저장 핸들러
   const handleSaveRoutine = async () => {
     await saveToDB(profile);
     setIsEditingRoutine(false);
   };
 
-  // 리뷰 추가
-  const addReview = async (e: React.FormEvent) => {
+  // --- 리뷰 관련 로직 (수정 기능 추가됨) ---
+
+  // 리뷰 저장 (추가/수정 분기 처리)
+  const saveReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase.from("skin_reviews").insert([newReview]);
+    
+    if (editingReviewId) {
+      // 수정 모드 (UPDATE)
+      await supabase.from("skin_reviews").update(reviewForm).eq("id", editingReviewId);
+    } else {
+      // 추가 모드 (INSERT)
+      await supabase.from("skin_reviews").insert([reviewForm]);
+    }
+
     setIsModalOpen(false);
-    setNewReview({ category: "Toner", name: "", review: "", rating: 3, repurchase: true });
+    setReviewForm({ category: "Toner", name: "", review: "", rating: 3, repurchase: true });
+    setEditingReviewId(null); // ID 초기화
     fetchData();
+  };
+
+  // 리뷰 수정 버튼 클릭 시
+  const openEditModal = (review: any) => {
+    setReviewForm({
+      category: review.category,
+      name: review.name,
+      review: review.review,
+      rating: review.rating,
+      repurchase: review.repurchase
+    });
+    setEditingReviewId(review.id); // 수정할 ID 설정
+    setIsModalOpen(true);
+  };
+
+  // 리뷰 추가 버튼 클릭 시
+  const openAddModal = () => {
+    setReviewForm({ category: "Toner", name: "", review: "", rating: 3, repurchase: true });
+    setEditingReviewId(null); // ID 초기화 (새글)
+    setIsModalOpen(true);
   };
 
   const deleteReview = async (id: number) => {
@@ -137,13 +166,14 @@ export default function SkinPage() {
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-bold tracking-widest">BACK</span>
         </Link>
-        <h1 className="text-xl font-bold tracking-[0.2em] text-white">SKIN LOG</h1>
+        {/* 제목 변경: SKIN STATUS */}
+        <h1 className="text-xl font-bold tracking-[0.2em] text-white">SKIN STATUS</h1>
         <div className="w-10"/> 
       </div>
 
       <main className="w-full max-w-2xl space-y-12 z-10">
         
-        {/* ================= SECTION 1: SKIN TYPE (고정됨) ================= */}
+        {/* ================= SECTION 1: SKIN TYPE ================= */}
         <div className="text-center py-4">
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/20 border border-blue-400/40 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.2)]">
             <Droplets className="w-4 h-4 text-blue-300" />
@@ -151,7 +181,7 @@ export default function SkinPage() {
           </div>
         </div>
 
-        {/* ================= SECTION 2: IMPROVEMENTS (가독성 UP) ================= */}
+        {/* ================= SECTION 2: IMPROVEMENTS ================= */}
         <section className="relative">
           <h2 className="text-xs font-bold text-white/90 tracking-widest mb-4 px-1 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -159,7 +189,6 @@ export default function SkinPage() {
           </h2>
           
           <div className="space-y-3">
-            {/* 추가 입력창 */}
             <form onSubmit={addImprovement} className="flex gap-2">
               <input 
                 type="text" 
@@ -173,7 +202,6 @@ export default function SkinPage() {
               </button>
             </form>
 
-            {/* 리스트 목록 */}
             <div className="space-y-2.5">
               {profile.improvements.length === 0 ? (
                 <div className="p-4 border border-dashed border-white/10 rounded-xl text-center">
@@ -196,7 +224,7 @@ export default function SkinPage() {
           </div>
         </section>
 
-        {/* ================= SECTION 3: CURRENT ROUTINE (가독성 UP) ================= */}
+        {/* ================= SECTION 3: CURRENT ROUTINE ================= */}
         <section>
           <div className="flex justify-between items-end mb-4 px-1">
             <h2 className="text-xs font-bold text-white/90 tracking-widest flex items-center gap-2">
@@ -246,12 +274,13 @@ export default function SkinPage() {
           </div>
         </section>
 
-        {/* ================= SECTION 4: PRODUCT ARCHIVE ================= */}
+        {/* ================= SECTION 4: REVIEWS (제목 수정됨) ================= */}
         <section className="pt-8">
           <div className="flex justify-between items-center mb-6 px-1">
-            <h2 className="text-lg font-light tracking-[0.2em] text-white">PRODUCT ARCHIVE</h2>
+            {/* 제목 변경: REVIEWS */}
+            <h2 className="text-lg font-light tracking-[0.2em] text-white">REVIEWS</h2>
             <button 
-              onClick={() => setIsModalOpen(true)} 
+              onClick={openAddModal} 
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl hover:bg-gray-200 transition-all hover:scale-105 shadow-lg"
             >
               <Plus className="w-4 h-4" />
@@ -282,13 +311,19 @@ export default function SkinPage() {
                           <p className="text-sm text-gray-300 font-normal leading-relaxed">{item.review}</p>
                         </div>
                         
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4">
                           {/* 재구매 의사 */}
                           <div className="flex flex-col items-center gap-1.5">
                             <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">RE-BUY</span>
                             <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_10px] transition-transform group-hover:scale-110 ${item.repurchase ? "bg-green-500 shadow-green-500/60" : "bg-red-500 shadow-red-500/60"}`} />
                           </div>
                           
+                          {/* 수정 버튼 (추가됨) */}
+                          <button onClick={() => openEditModal(item)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                            <Edit2 className="w-4.5 h-4.5" />
+                          </button>
+
+                          {/* 삭제 버튼 */}
                           <button onClick={() => deleteReview(item.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
                             <Trash2 className="w-4.5 h-4.5" />
                           </button>
@@ -310,20 +345,23 @@ export default function SkinPage() {
         </section>
       </main>
 
-      {/* 리뷰 추가 모달 */}
+      {/* 리뷰 추가/수정 모달 */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           <div className="relative w-full max-w-sm bg-[#0a0a0a] border border-white/20 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-white mb-6 tracking-wide">ADD REVIEW</h3>
-            <form onSubmit={addReview} className="space-y-5">
+            {/* 제목 동적 변경 (ADD vs EDIT) */}
+            <h3 className="text-lg font-bold text-white mb-6 tracking-wide">
+              {editingReviewId ? "EDIT REVIEW" : "ADD REVIEW"}
+            </h3>
+            <form onSubmit={saveReview} className="space-y-5">
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Category</label>
                   <select 
-                    value={newReview.category} 
-                    onChange={e => setNewReview({...newReview, category: e.target.value})}
+                    value={reviewForm.category} 
+                    onChange={e => setReviewForm({...reviewForm, category: e.target.value})}
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-white/50 transition-colors cursor-pointer"
                   >
                     {categories.map(c => <option key={c} value={c} className="bg-neutral-900 text-white">{c}</option>)}
@@ -333,35 +371,37 @@ export default function SkinPage() {
                 <div className="space-y-1">
                   <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Repurchase</label>
                   <div 
-                    className={`flex items-center justify-center h-[46px] border border-white/20 rounded-xl cursor-pointer transition-all ${newReview.repurchase ? "bg-green-500/20 border-green-500/50" : "bg-red-500/20 border-red-500/50"}`} 
-                    onClick={() => setNewReview({...newReview, repurchase: !newReview.repurchase})}
+                    className={`flex items-center justify-center h-[46px] border border-white/20 rounded-xl cursor-pointer transition-all ${reviewForm.repurchase ? "bg-green-500/20 border-green-500/50" : "bg-red-500/20 border-red-500/50"}`} 
+                    onClick={() => setReviewForm({...reviewForm, repurchase: !reviewForm.repurchase})}
                   >
-                    <span className={`text-xs font-bold tracking-wider ${newReview.repurchase ? "text-green-400" : "text-red-400"}`}>
-                      {newReview.repurchase ? "YES" : "NO"}
+                    <span className={`text-xs font-bold tracking-wider ${reviewForm.repurchase ? "text-green-400" : "text-red-400"}`}>
+                      {reviewForm.repurchase ? "YES" : "NO"}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <input type="text" placeholder="제품 이름" value={newReview.name} onChange={e => setNewReview({...newReview, name: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/50 placeholder:text-gray-500 transition-colors" required />
+                <input type="text" placeholder="제품 이름" value={reviewForm.name} onChange={e => setReviewForm({...reviewForm, name: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/50 placeholder:text-gray-500 transition-colors" required />
               </div>
               
               <div className="space-y-1">
-                <textarea placeholder="한줄 평을 남겨주세요..." value={newReview.review} onChange={e => setNewReview({...newReview, review: e.target.value})} className="w-full h-24 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none resize-none placeholder:text-gray-500 focus:border-white/50 transition-colors" required />
+                <textarea placeholder="한줄 평을 남겨주세요..." value={reviewForm.review} onChange={e => setReviewForm({...reviewForm, review: e.target.value})} className="w-full h-24 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none resize-none placeholder:text-gray-500 focus:border-white/50 transition-colors" required />
               </div>
 
               <div className="flex justify-center gap-3 py-3 bg-white/5 rounded-xl border border-white/10">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star 
                     key={star} 
-                    className={`w-8 h-8 cursor-pointer transition-all hover:scale-110 ${star <= newReview.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}`}
-                    onClick={() => setNewReview({...newReview, rating: star})}
+                    className={`w-8 h-8 cursor-pointer transition-all hover:scale-110 ${star <= reviewForm.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}`}
+                    onClick={() => setReviewForm({...reviewForm, rating: star})}
                   />
                 ))}
               </div>
 
-              <button type="submit" className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-gray-200 mt-2 tracking-widest transition-colors shadow-lg">SAVE REVIEW</button>
+              <button type="submit" className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-gray-200 mt-2 tracking-widest transition-colors shadow-lg">
+                {editingReviewId ? "UPDATE REVIEW" : "SAVE REVIEW"}
+              </button>
             </form>
           </div>
         </div>
