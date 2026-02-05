@@ -32,7 +32,10 @@ export default function DashboardPage() {
             <CenterTasks />
           </div>
 
+          {/* 하단 네비게이션 카드 영역 (수정됨) */}
           <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+            
+            {/* 1. PROJECT (기존 유지) */}
             <NavCard
               title="PROJECT"
               icon="project"
@@ -40,26 +43,32 @@ export default function DashboardPage() {
               href="/dashboard/project"
               count={4}
             />
+
+            {/* 2. WEEKLY PLAN (추가됨) */}
             <NavCard
-              title="YEARLY PLAN"
-              icon="yearly"
-              description="Long-term goals & milestones"
-              href="/yearly"
-              count={5}
+              title="WEEKLY PLAN"
+              icon="calendar" 
+              description="Routine & Schedules"
+              href="/dashboard/weekly"
+              count={7} 
             />
+
+            {/* 3. LIBRARY (추가됨 - Book List) */}
             <NavCard
-              title="MONTHLY PLAN"
-              icon="monthly"
-              description="This month's priorities"
-              href="/monthly"
-              count={8}
+              title="LIBRARY"
+              icon="book"
+              description="Book Archive & Reviews"
+              href="/dashboard/books"
+              count={12} 
             />
+
+            {/* 4. THOUGHTS (기존 유지) */}
             <NavCard
               title="THOUGHTS"
               icon="thoughts"
               description="Ideas & reflections"
               href="/thoughts"
-              count={12}
+              count={0}
             />
           </div>
         </div>
