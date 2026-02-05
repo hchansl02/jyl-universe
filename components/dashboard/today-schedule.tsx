@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { Plus, Trash2, Edit2, X, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, X, Clock, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export function TodaySchedule() {
   const supabase = createBrowserClient(
@@ -10,70 +10,106 @@ export function TodaySchedule() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  
+  // 오늘 요일 구하기
+  const getTodayDay = () => days[new Date().getDay()];
+
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [selectedDay, setSelectedDay] = useState(getTodayDay()); // 기본값은 오늘 요일
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 시간 및 날짜 갱신 (KST 기준 보장)
+  // KST 시간 갱신 및 자정 체크
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // 만약 날이 바뀌면 자동으로 오늘 요일로 업데이트 (선택 사항)
+      // if (selectedDay !== days[now.getDay()]) setSelectedDay(days[now.getDay()]);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [selectedDay]);
 
+  // 선택된 요일의 일정만 불러오기
   const fetchSchedules = async () => {
-    const { data } = await supabase.from("schedules").select("*").order("start_time", { ascending: true });
+    const { data } = await supabase
+      .from("schedules")
+      .select("*")
+      .eq("day", selectedDay) // 요일 필터링 추가
+      .order("start_time", { ascending: true });
+    
     if (data) setSchedules(data);
   };
 
-  useEffect(() => { fetchSchedules(); }, []);
+  useEffect(() => {
+    fetchSchedules();
+  }, [selectedDay]); // 요일이 바뀔 때마다 다시 불러옴
 
-  // 시간선 위치 계산 (06:00 시작 기준)
   const calculatePosition = (timeStr: string) => {
     const [hrs, mins] = timeStr.split(':').map(Number);
     const startHour = 6;
     const totalMinutes = (hrs - startHour) * 60 + mins;
-    return (totalMinutes / 60) * 80; // 1시간당 80px
+    return (totalMinutes / 60) * 80;
   };
 
-  // 현재 KST 시간 기반 NOW 라인 위치
+  const nowDay = getTodayDay();
   const nowHrs = currentTime.getHours();
-  const nowMins = currentTime.getMinutes();
-  const nowPos = calculatePosition(`${nowHrs}:${nowMins}`);
-
-  // 날짜 포맷
-  const dateStr = currentTime.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-  const dayName = currentTime.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const nowPos = calculatePosition(`${nowHrs}:${currentTime.getMinutes()}`);
 
   return (
     <div className="relative bg-white/[0.015] border border-white/5 rounded-3xl p-7 h-[650px] flex flex-col backdrop-blur-xl shadow-2xl">
       
-      {/* 타임라인 헤더 (날짜 추가됨) */}
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <div className="flex items-center gap-2 text-white/30 mb-1">
-            <CalendarIcon className="w-3 h-3" />
-            <span className="text-[10px] font-mono tracking-widest uppercase">{dateStr}</span>
+      {/* 1. 요일 선택 및 헤더 */}
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="flex items-center gap-2 text-white/30 mb-1">
+              <CalendarIcon className="w-3 h-3" />
+              <span className="text-[10px] font-mono tracking-widest uppercase">
+                {currentTime.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
+            <h2 className="text-xl font-light tracking-[0.2em] text-white/90">
+              {selectedDay} <span className="text-white/30 text-sm font-light">TIMELINE</span>
+            </h2>
           </div>
-          <h2 className="text-xl font-light tracking-[0.2em] text-white/90">
-            {dayName} <span className="text-white/30 text-sm font-light">TIMELINE</span>
-          </h2>
+          
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all group"
+          >
+            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+            <span className="text-[10px] font-bold tracking-widest">ADD</span>
+          </button>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all group"
-        >
-          <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-          <span className="text-[10px] font-bold tracking-widest">ADD SCHEDULE</span>
-        </button>
+
+        {/* 요일 탭 선택기 */}
+        <div className="flex gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl">
+          {days.map((day) => (
+            <button
+              key={day}
+              onClick={() => setSelectedDay(day)}
+              className={`flex-1 py-2 text-[10px] font-bold tracking-tighter rounded-xl transition-all ${
+                selectedDay === day 
+                ? "bg-white text-black shadow-lg" 
+                : day === nowDay 
+                  ? "text-blue-400 bg-blue-400/5" 
+                  : "text-white/20 hover:text-white/50"
+              }`}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* 타임라인 바디 (스크롤바 스타일 수정) */}
-      <div className="relative flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20 transition-all">
+      {/* 2. 타임라인 리스트 (기존 유지) */}
+      <div className="relative flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         
-        {/* 현재 시간선 (NOW) */}
-        {(nowHrs >= 6) && (
+        {/* 현재 요일이고 6시 이후일 때만 NOW 라인 표시 */}
+        {selectedDay === nowDay && nowHrs >= 6 && (
           <div 
             className="absolute left-0 right-0 border-t border-red-500/60 z-30 flex items-center"
             style={{ top: `${nowPos}px`, transition: 'top 1s linear' }}
@@ -84,7 +120,6 @@ export function TodaySchedule() {
           </div>
         )}
 
-        {/* 배경 시간 그리드 */}
         {Array.from({ length: 19 }).map((_, i) => (
           <div key={i} className="h-[80px] border-t border-white/[0.03] relative">
             <span className="absolute -top-2.5 left-0 text-[10px] font-mono text-white/10 w-12 text-right pr-4">
@@ -93,7 +128,6 @@ export function TodaySchedule() {
           </div>
         ))}
 
-        {/* 일정 데이터 */}
         {schedules.map((item) => {
           const top = calculatePosition(item.start_time);
           const [sH, sM] = item.start_time.split(':').map(Number);
@@ -130,15 +164,14 @@ export function TodaySchedule() {
         })}
       </div>
 
-      {/* 일정 추가 팝업 모달 */}
+      {/* 3. 모달 팝업 (day 정보 포함하여 저장) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
-          <div className="relative w-full max-w-md bg-[#0d0d0d] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-lg font-light tracking-widest text-white">NEW MISSION</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/20 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
+          <div className="relative w-full max-w-md bg-[#0d0d0d] border border-white/10 rounded-3xl p-8 shadow-2xl">
+            <h3 className="text-lg font-light tracking-widest text-white mb-8">
+              ADD FOR {selectedDay}
+            </h3>
             
             <form 
               onSubmit={async (e: any) => {
@@ -147,7 +180,8 @@ export function TodaySchedule() {
                 await supabase.from("schedules").insert([{
                   title: formData.get('title'),
                   start_time: formData.get('start'),
-                  end_time: formData.get('end')
+                  end_time: formData.get('end'),
+                  day: selectedDay // 선택된 요일에 저장
                 }]);
                 setIsModalOpen(false);
                 fetchSchedules();
@@ -156,22 +190,14 @@ export function TodaySchedule() {
             >
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase">Task Name</label>
-                <input name="title" placeholder="무엇을 하나요?" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm focus:outline-none focus:border-white/30 transition-all" required />
+                <input name="title" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm focus:outline-none" required />
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase">Start</label>
-                  <input name="start" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm focus:outline-none" required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase">End</label>
-                  <input name="end" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm focus:outline-none" required />
-                </div>
+                <input name="start" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
+                <input name="end" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
               </div>
-
-              <button type="submit" className="w-full py-5 bg-white text-black font-bold rounded-2xl hover:bg-gray-200 transition-all mt-4 tracking-[0.2em] text-xs">
-                SAVE TO TIMELINE
+              <button type="submit" className="w-full py-5 bg-white text-black font-bold rounded-2xl text-xs tracking-[0.2em]">
+                SAVE TO {selectedDay}
               </button>
             </form>
           </div>
