@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Plus, Trash2, GripVertical, CheckCircle2, Circle, Book } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, CheckCircle2, Book, Edit2, Save, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import Link from "next/link";
 
@@ -24,6 +24,10 @@ export default function BookPage() {
   const [books, setBooks] = useState<BookItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // 수정 모드 상태 관리
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", author: "", category: "" });
+
   // 새 책 입력 상태
   const [newBook, setNewBook] = useState({ 
     title: "", 
@@ -33,19 +37,19 @@ export default function BookPage() {
 
   const categories = ["인문학", "문학", "경제/경영", "취미", "전공 (마케팅/영상)"];
 
-  // 1. 데이터 불러오기 (순서대로)
+  // 1. 데이터 불러오기
   const fetchBooks = async () => {
     const { data } = await supabase
       .from("books")
       .select("*")
-      .order("order_index", { ascending: true }); // 순서대로 정렬
+      .order("order_index", { ascending: true });
     
     if (data) setBooks(data as any);
   };
 
   useEffect(() => { fetchBooks(); }, []);
 
-  // 2. 책 추가 (맨 아래에 추가)
+  // 2. 책 추가
   const addBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBook.title.trim()) return;
@@ -66,51 +70,67 @@ export default function BookPage() {
     fetchBooks();
   };
 
-  // 3. 드래그 앤 드롭 종료 시 처리
+  // 3. 수정 시작 (연필 버튼 클릭)
+  const startEditing = (book: BookItem) => {
+    setEditingId(book.id);
+    setEditForm({ title: book.title, author: book.author, category: book.category });
+  };
+
+  // 4. 수정 취소
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm({ title: "", author: "", category: "" });
+  };
+
+  // 5. 수정 저장
+  const saveEdit = async () => {
+    if (!editForm.title.trim() || !editingId) return;
+
+    // UI 즉시 반영 (낙관적 업데이트)
+    setBooks(books.map(b => b.id === editingId ? { ...b, ...editForm } : b));
+    setEditingId(null);
+
+    // DB 업데이트
+    await supabase.from("books").update(editForm).eq("id", editingId);
+  };
+
+  // 6. 드래그 앤 드롭
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-
     const sourceIndex = result.source.index;
     const destinationIndex = result.destination.index;
-
     if (sourceIndex === destinationIndex) return;
 
-    // 화면상 순서 즉시 변경 (UX 최적화)
     const newBooks = Array.from(books);
     const [reorderedItem] = newBooks.splice(sourceIndex, 1);
     newBooks.splice(destinationIndex, 0, reorderedItem);
 
-    // order_index 재계산해서 저장
     const updatedBooks = newBooks.map((book, index) => ({
       ...book,
       order_index: index
     }));
 
     setBooks(updatedBooks);
-
-    // DB에 일괄 업데이트
     await supabase.from("books").upsert(
         updatedBooks.map(b => ({ id: b.id, order_index: b.order_index }))
     );
   };
 
-  // 4. 완독 처리 토글
+  // 7. 상태 토글
   const toggleStatus = async (id: number, currentStatus: string) => {
     const newStatus = currentStatus === "Reading" ? "Finished" : "Reading";
-    
     setBooks(books.map(b => b.id === id ? { ...b, status: newStatus } : b));
     await supabase.from("books").update({ status: newStatus }).eq("id", id);
   };
 
-  // 5. 삭제
+  // 8. 삭제
   const deleteBook = async (id: number) => {
-    if (confirm("이 책을 리스트에서 삭제하시겠습니까?")) {
+    if (confirm("정말 삭제하시겠습니까?")) {
       await supabase.from("books").delete().eq("id", id);
       fetchBooks();
     }
   };
 
-  // 카테고리별 색상
   const getCategoryColor = (cat: string) => {
     switch(cat) {
         case "인문학": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
@@ -144,16 +164,15 @@ export default function BookPage() {
         </button>
       </div>
 
-      {/* 리스트 영역 (Drag & Drop) */}
+      {/* 리스트 영역 */}
       <div className="w-full max-w-4xl z-10">
-        {/* 리스트 헤더 */}
-        <div className="grid grid-cols-[50px_1fr_120px_120px_80px_40px] gap-4 px-4 py-2 text-[10px] font-bold text-white/30 tracking-widest uppercase border-b border-white/10 mb-2">
+        <div className="grid grid-cols-[50px_1fr_120px_120px_80px_70px] gap-4 px-4 py-2 text-[10px] font-bold text-white/30 tracking-widest uppercase border-b border-white/10 mb-2">
             <div className="text-center">#</div>
             <div>Title / Author</div>
             <div className="text-center">Category</div>
             <div className="text-center">Reading</div>
             <div className="text-center">Status</div>
-            <div></div>
+            <div className="text-right">Action</div>
         </div>
 
         <DragDropContext onDragEnd={onDragEnd}>
@@ -166,7 +185,7 @@ export default function BookPage() {
                                     <div
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
-                                        className={`grid grid-cols-[50px_1fr_120px_120px_80px_40px] gap-4 items-center p-4 rounded-xl border transition-all group ${
+                                        className={`grid grid-cols-[50px_1fr_120px_120px_80px_70px] gap-4 items-center p-4 rounded-xl border transition-all group ${
                                             snapshot.isDragging 
                                             ? "bg-white/10 border-white/30 shadow-2xl scale-105 z-50" 
                                             : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04]"
@@ -178,107 +197,45 @@ export default function BookPage() {
                                             <span className="font-mono text-sm font-bold w-4 text-center">{index + 1}</span>
                                         </div>
 
-                                        {/* 2. 제목 & 저자 */}
-                                        <div className="min-w-0">
-                                            <h3 className={`text-sm font-medium truncate ${book.status === 'Finished' ? 'text-white/30 line-through decoration-white/30' : 'text-white'}`}>
-                                                {book.title}
-                                            </h3>
-                                            <p className="text-xs text-white/40 truncate">{book.author}</p>
-                                        </div>
+                                        {/* ================= 수정 모드 분기점 ================= */}
+                                        {editingId === book.id ? (
+                                          // [수정 모드 화면]
+                                          <>
+                                            {/* 제목 & 저자 수정 */}
+                                            <div className="flex flex-col gap-1 min-w-0">
+                                              <input 
+                                                type="text" 
+                                                value={editForm.title} 
+                                                onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                                                className="w-full bg-transparent border-b border-white/30 text-sm text-white focus:border-blue-500 focus:outline-none"
+                                              />
+                                              <input 
+                                                type="text" 
+                                                value={editForm.author} 
+                                                onChange={(e) => setEditForm({...editForm, author: e.target.value})}
+                                                className="w-full bg-transparent border-b border-white/30 text-xs text-white/60 focus:border-blue-500 focus:outline-none"
+                                              />
+                                            </div>
 
-                                        {/* 3. 카테고리 */}
-                                        <div className="flex justify-center">
-                                            <span className={`text-[10px] px-2 py-1 rounded border whitespace-nowrap ${getCategoryColor(book.category)}`}>
-                                                {book.category}
-                                            </span>
-                                        </div>
+                                            {/* 카테고리 수정 */}
+                                            <div className="flex justify-center">
+                                              <select 
+                                                value={editForm.category}
+                                                onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                                                className="bg-black border border-white/20 rounded text-[10px] text-white px-1 py-1 focus:outline-none"
+                                              >
+                                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                              </select>
+                                            </div>
 
-                                        {/* 4. 읽기 버튼 (상태 토글) */}
-                                        <div className="flex justify-center">
-                                            <button 
-                                                onClick={() => toggleStatus(book.id, book.status)}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                                                    book.status === 'Finished' 
-                                                    ? "bg-green-500/10 border-green-500/30 text-green-400"
-                                                    : "bg-white/5 border-white/10 text-white/40 hover:text-white"
-                                                }`}
-                                            >
-                                                {book.status === 'Finished' ? <CheckCircle2 className="w-3 h-3" /> : <Book className="w-3 h-3" />}
-                                                <span className="text-[10px] font-bold">{book.status === 'Finished' ? 'DONE' : 'READ'}</span>
-                                            </button>
-                                        </div>
+                                            {/* 읽기 버튼 (수정 중 비활성화) */}
+                                            <div className="flex justify-center opacity-30">
+                                              <div className="px-3 py-1.5 rounded-full border border-white/10 text-white/40 text-[10px] font-bold">READ</div>
+                                            </div>
+                                            <div className="text-center opacity-30">
+                                              <span className="text-[10px] font-mono text-white/20">--%</span>
+                                            </div>
 
-                                        {/* 5. 상태 텍스트 (완독여부) */}
-                                        <div className="text-center">
-                                            <span className={`text-[10px] font-mono ${book.status === 'Finished' ? "text-green-500" : "text-white/20"}`}>
-                                                {book.status === 'Finished' ? "100%" : "0%"}
-                                            </span>
-                                        </div>
-
-                                        {/* 6. 삭제 버튼 */}
-                                        <div className="flex justify-end">
-                                            <button onClick={() => deleteBook(book.id)} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </Draggable>
-                        )) : (
-                            <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl text-white/20 text-xs">
-                                등록된 책이 없습니다.
-                            </div>
-                        )}
-                        {provided.placeholder}
-                    </div>
-                )}
-            </Droppable>
-        </DragDropContext>
-      </div>
-
-      {/* 추가 모달 */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <div className="relative w-full max-w-sm bg-[#0a0a0a] border border-white/20 rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-white mb-6 tracking-wide">ADD NEW BOOK</h3>
-            <form onSubmit={addBook} className="space-y-4">
-              
-              <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Book Title</label>
-                <input type="text" placeholder="책 제목" value={newBook.title} onChange={e => setNewBook({...newBook, title: e.target.value})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30" required autoFocus />
-              </div>
-              
-              <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Author</label>
-                <input type="text" placeholder="저자" value={newBook.author} onChange={e => setNewBook({...newBook, author: e.target.value})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30" />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Category</label>
-                <div className="grid grid-cols-2 gap-2">
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setNewBook({...newBook, category: cat})}
-                            className={`px-2 py-2 text-[10px] rounded-lg border transition-all ${
-                                newBook.category === cat 
-                                ? "bg-white text-black border-white font-bold" 
-                                : "bg-white/5 text-white/50 border-white/10 hover:bg-white/10"
-                            }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-              </div>
-              
-              <button type="submit" className="w-full py-4 bg-white text-black font-bold rounded-xl mt-4 hover:bg-gray-200 transition-colors tracking-widest">SAVE BOOK</button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                                            {/* 저장 / 취소 버튼 */}
+                                            <div className="flex justify-end gap-2">
+                                              <button onClick={saveEdit} className="text-green-400 hover:text-green-300"><Save className="w-4 h-
