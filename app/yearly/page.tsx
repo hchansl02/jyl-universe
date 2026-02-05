@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Plus, GripVertical, CheckCircle2, Circle, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, GripVertical, CheckCircle2, Circle, Trash2, Loader2, Edit2, Save, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import Link from "next/link";
 
@@ -12,7 +12,6 @@ export default function YearlyPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // DB 컬럼명에 맞춘 타입 정의 (content, is_completed, position)
   interface Plan {
     id: number;
     content: string;
@@ -24,13 +23,17 @@ export default function YearlyPage() {
   const [newPlan, setNewPlan] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // 수정 모드 상태 관리
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+
   // 1. 데이터 불러오기
   const fetchPlans = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("yearly_plans")
       .select("*")
-      .order("position", { ascending: true }); // order_index 대신 position 사용
+      .order("position", { ascending: true });
     
     if (error) {
       console.error("데이터 로드 에러:", error);
@@ -49,7 +52,6 @@ export default function YearlyPage() {
     e.preventDefault();
     if (!newPlan.trim()) return;
 
-    // 현재 가장 큰 position 값 찾기
     const nextPosition = plans.length > 0 ? Math.max(...plans.map(p => p.position)) + 1 : 0;
     
     const { error } = await supabase
@@ -63,19 +65,41 @@ export default function YearlyPage() {
     if (!error) {
         setNewPlan("");
         fetchPlans();
-    } else {
-        console.error("추가 에러:", error.message);
     }
   };
 
-  // 3. 체크 토글
+  // 3. 수정 시작
+  const startEditing = (plan: Plan) => {
+    setEditingId(plan.id);
+    setEditContent(plan.content);
+  };
+
+  // 4. 수정 취소
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditContent("");
+  };
+
+  // 5. 수정 저장
+  const saveEdit = async (id: number) => {
+    if (!editContent.trim()) return;
+
+    // UI 즉시 반영
+    setPlans(plans.map(p => p.id === id ? { ...p, content: editContent } : p));
+    setEditingId(null);
+
+    // DB 업데이트
+    await supabase.from("yearly_plans").update({ content: editContent }).eq("id", id);
+  };
+
+  // 6. 체크 토글
   const toggleDone = async (id: number, currentStatus: boolean | null) => {
     const newStatus = !currentStatus;
     setPlans(plans.map(p => p.id === id ? { ...p, is_completed: newStatus } : p));
     await supabase.from("yearly_plans").update({ is_completed: newStatus }).eq("id", id);
   };
 
-  // 4. 삭제
+  // 7. 삭제
   const deletePlan = async (id: number) => {
     if (confirm("삭제하시겠습니까?")) {
       setPlans(plans.filter(p => p.id !== id));
@@ -83,7 +107,7 @@ export default function YearlyPage() {
     }
   };
 
-  // 5. 드래그 앤 드롭 정렬 저장
+  // 8. 드래그 앤 드롭 정렬 저장
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     const sourceIndex = result.source.index;
@@ -97,7 +121,6 @@ export default function YearlyPage() {
     const updatedPlans = newPlans.map((item, index) => ({ ...item, position: index }));
     setPlans(updatedPlans);
 
-    // 전체 순서 업데이트 (position 컬럼 사용)
     await supabase.from("yearly_plans").upsert(
         updatedPlans.map(p => ({ 
           id: p.id, 
@@ -115,7 +138,7 @@ export default function YearlyPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-6">
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-bold tracking-widest uppercase">Back to Dashboard</span>
         </Link>
@@ -126,6 +149,7 @@ export default function YearlyPage() {
         <h1 className="text-5xl font-light tracking-tight text-white">2026</h1>
       </header>
 
+      {/* 진행률 바 */}
       <div className="w-full max-w-2xl mb-12">
         <div className="flex justify-between items-end mb-2 px-1">
             <span className="text-[10px] font-bold text-white/40 tracking-widest">ANNUAL PROGRESS</span>
@@ -164,26 +188,66 @@ export default function YearlyPage() {
                                             : "bg-white/[0.03] border-white/5 hover:border-white/10"
                                         }`}
                                     >
+                                        {/* 드래그 핸들 */}
                                         <div {...provided.dragHandleProps} className="text-white/10 hover:text-white/50 cursor-grab active:cursor-grabbing">
                                             <GripVertical className="w-4 h-4" />
                                         </div>
 
+                                        {/* 체크 버튼 */}
                                         <button onClick={() => toggleDone(plan.id, plan.is_completed)} className="text-white/20 hover:text-white transition-colors">
                                             {plan.is_completed ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Circle className="w-5 h-5" />}
                                         </button>
 
+                                        {/* 내용 영역 (수정 모드 분기) */}
                                         <div className="flex-1">
-                                            <span className={`text-sm font-light tracking-wide transition-all ${plan.is_completed ? "text-white/30 line-through" : "text-white/90"}`}>
-                                                {plan.content}
-                                            </span>
+                                            {editingId === plan.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input 
+                                                        type="text"
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        className="flex-1 bg-transparent border-b border-white/30 py-1 text-sm text-white focus:outline-none focus:border-white"
+                                                        autoFocus
+                                                        onKeyDown={(e) => e.key === 'Enter' && saveEdit(plan.id)}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <span className={`text-sm font-light tracking-wide transition-all ${plan.is_completed ? "text-white/30 line-through" : "text-white/90"}`}>
+                                                    {plan.content}
+                                                </span>
+                                            )}
                                         </div>
 
-                                        <button 
-                                            onClick={() => deletePlan(plan.id)}
-                                            className="opacity-0 group-hover:opacity-100 text-white/10 hover:text-red-400 transition-all px-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {/* 액션 버튼 영역 */}
+                                        <div className="flex items-center gap-1">
+                                            {editingId === plan.id ? (
+                                                <>
+                                                    <button onClick={() => saveEdit(plan.id)} className="p-1 text-green-400 hover:text-green-300 transition-colors">
+                                                        <Save className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={cancelEditing} className="p-1 text-white/20 hover:text-white transition-colors">
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button 
+                                                        onClick={() => startEditing(plan)} 
+                                                        className="opacity-0 group-hover:opacity-100 p-1 text-white/20 hover:text-blue-400 transition-all"
+                                                        title="수정"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => deletePlan(plan.id)}
+                                                        className="opacity-0 group-hover:opacity-100 p-1 text-white/20 hover:text-red-400 transition-all"
+                                                        title="삭제"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </Draggable>
@@ -195,6 +259,7 @@ export default function YearlyPage() {
           </DragDropContext>
         )}
 
+        {/* 새 목표 추가 폼 */}
         <form onSubmit={addPlan} className="mt-8 relative group">
             <input 
                 type="text" 
