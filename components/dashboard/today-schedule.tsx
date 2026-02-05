@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { 
-  Plus, Trash2, Edit2, Save, X, Clock, Calendar as CalendarIcon, 
-  Repeat, Palette, Check 
+  Plus, Trash2, Edit2, X, Clock, Calendar as CalendarIcon, 
+  Repeat, Palette, Check, Save 
 } from "lucide-react";
 
 export function TodaySchedule() {
@@ -21,11 +21,9 @@ export function TodaySchedule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 수정 관련 상태
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<any>(null);
+  // 수정 전용 상태
+  const [editingItem, setEditingItem] = useState<any>(null);
 
-  // 파스텔/뮤트톤 색상 팔레트
   const colors = [
     { name: 'Default', value: 'rgba(255, 255, 255, 0.05)', border: 'rgba(255, 255, 255, 0.1)' },
     { name: 'Blue', value: 'rgba(96, 165, 250, 0.15)', border: 'rgba(96, 165, 250, 0.3)' },
@@ -41,7 +39,6 @@ export function TodaySchedule() {
   }, []);
 
   const fetchSchedules = async () => {
-    // 선택된 요일의 일정 OR 매일(daily) 반복되는 일정 가져오기
     const { data } = await supabase
       .from("schedules")
       .select("*")
@@ -53,24 +50,24 @@ export function TodaySchedule() {
 
   useEffect(() => { fetchSchedules(); }, [selectedDay]);
 
+  // 위치 계산 (00:00 시작 기준)
   const calculatePosition = (timeStr: string) => {
     const [hrs, mins] = timeStr.split(':').map(Number);
-    const startHour = 6;
-    const totalMinutes = (hrs - startHour) * 60 + mins;
-    return (totalMinutes / 60) * 80;
+    const totalMinutes = hrs * 60 + mins;
+    return (totalMinutes / 60) * 80; // 1시간당 80px
   };
 
   const nowDay = getTodayDay();
   const nowHrs = currentTime.getHours();
   const nowPos = calculatePosition(`${nowHrs}:${currentTime.getMinutes()}`);
 
-  // --- CRUD 기능 ---
-  const handleAdd = async (e: any) => {
+  // 저장 및 수정 로직 통합
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const isRecurring = formData.get('is_recurring') === 'on';
-
-    await supabase.from("schedules").insert([{
+    
+    const payload = {
       title: formData.get('title'),
       start_time: formData.get('start'),
       end_time: formData.get('end'),
@@ -79,43 +76,57 @@ export function TodaySchedule() {
       is_recurring: isRecurring,
       recurrence_period: isRecurring ? formData.get('recurrence_period') : null,
       recurrence_until: formData.get('recurrence_until') || null
-    }]);
+    };
+
+    if (editingItem) {
+      // 수정 모드
+      await supabase.from("schedules").update(payload).eq("id", editingItem.id);
+    } else {
+      // 추가 모드
+      await supabase.from("schedules").insert([payload]);
+    }
     
+    closeModal();
+    fetchSchedules();
+  };
+
+  const openAddModal = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (item: any) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
     setIsModalOpen(false);
-    fetchSchedules();
-  };
-
-  const startEdit = (item: any) => {
-    setEditingId(item.id);
-    setEditForm({ ...item });
-  };
-
-  const saveEdit = async () => {
-    if (!editForm) return;
-    await supabase.from("schedules").update(editForm).eq("id", editingId);
-    setEditingId(null);
-    fetchSchedules();
+    setEditingItem(null);
   };
 
   return (
-    <div className="relative bg-white/[0.015] border border-white/5 rounded-3xl p-7 h-[650px] flex flex-col backdrop-blur-xl shadow-2xl overflow-hidden">
+    <div className="relative bg-white/[0.015] border border-white/5 rounded-3xl p-7 h-[700px] flex flex-col backdrop-blur-xl shadow-2xl overflow-hidden font-sans">
       
-      {/* 헤더 & 요일 선택 (기존 스타일 유지) */}
+      {/* 상단 헤더 */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2 text-white/30 mb-1">
               <CalendarIcon className="w-3 h-3" />
-              <span className="text-[10px] font-mono tracking-widest uppercase">{currentTime.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span className="text-[10px] font-mono tracking-widest uppercase">
+                {currentTime.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
             </div>
             <h2 className="text-xl font-light tracking-[0.2em] text-white/90">{selectedDay} <span className="text-white/30 text-sm font-light uppercase">Timeline</span></h2>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all group">
+          <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all group">
             <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
             <span className="text-[10px] font-bold tracking-widest">ADD</span>
           </button>
         </div>
 
+        {/* 요일 선택 */}
         <div className="flex gap-1.5 p-1 bg-white/[0.02] border border-white/5 rounded-2xl overflow-x-auto no-scrollbar">
           {days.map((day) => (
             <button key={day} onClick={() => setSelectedDay(day)} className={`flex-1 min-w-[50px] py-2 text-[10px] font-bold tracking-tighter rounded-xl transition-all ${selectedDay === day ? "bg-white text-black shadow-lg" : day === nowDay ? "text-blue-400 bg-blue-400/5" : "text-white/20 hover:text-white/50"}`}>
@@ -125,20 +136,22 @@ export function TodaySchedule() {
         </div>
       </div>
 
-      {/* 타임라인 메인 */}
+      {/* 타임라인 메인 (24시간 전체 표시) */}
       <div className="relative flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         
         {/* NOW 라인 */}
-        {selectedDay === nowDay && nowHrs >= 6 && (
+        {selectedDay === nowDay && (
           <div className="absolute left-0 right-0 border-t border-red-500/60 z-30 flex items-center" style={{ top: `${nowPos}px`, transition: 'top 1s linear' }}>
             <div className="absolute left-0 bg-red-500 text-[8px] font-bold px-1.5 py-0.5 rounded-sm text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]">NOW</div>
           </div>
         )}
 
-        {/* 시간 그리드 */}
-        {Array.from({ length: 19 }).map((_, i) => (
+        {/* 배경 시간 그리드 (00:00 ~ 23:00) */}
+        {Array.from({ length: 24 }).map((_, i) => (
           <div key={i} className="h-[80px] border-t border-white/[0.03] relative">
-            <span className="absolute -top-2.5 left-0 text-[10px] font-mono text-white/10 w-12 text-right pr-4">{String(i + 6).padStart(2, '0')}:00</span>
+            <span className="absolute -top-2.5 left-0 text-[10px] font-mono text-white/10 w-12 text-right pr-4">
+              {String(i).padStart(2, '0')}:00
+            </span>
           </div>
         ))}
 
@@ -146,7 +159,11 @@ export function TodaySchedule() {
         {schedules.map((item) => {
           const top = calculatePosition(item.start_time);
           const [sH, sM] = item.start_time.split(':').map(Number);
-          const [eH, eM] = item.end_time.split(':').map(Number);
+          let [eH, eM] = item.end_time.split(':').map(Number);
+          
+          // 자정(00:00) 종료 처리: 시작 시간보다 종료 시간이 작으면 다음날 자정(24:00)으로 간주
+          if (eH === 0 && eM === 0) eH = 24;
+
           const duration = (eH * 60 + eM) - (sH * 60 + sM);
           const height = (duration / 60) * 80;
           const colorObj = colors.find(c => c.value === item.color) || colors[0];
@@ -164,15 +181,7 @@ export function TodaySchedule() {
               }}
             >
               <div className="flex flex-col justify-center min-w-0">
-                {editingId === item.id ? (
-                  <input 
-                    className="bg-transparent text-sm font-bold text-white border-b border-white/30 focus:outline-none"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                  />
-                ) : (
-                  <p className="text-sm font-bold text-white/90 truncate">{item.title}</p>
-                )}
+                <p className="text-sm font-bold text-white/90 truncate">{item.title}</p>
                 <div className="flex items-center gap-2 mt-1 text-white/50 font-mono text-[9px]">
                   <Clock className="w-2.5 h-2.5" />
                   <span>{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
@@ -181,11 +190,7 @@ export function TodaySchedule() {
               </div>
 
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {editingId === item.id ? (
-                  <button onClick={saveEdit} className="p-1.5 text-green-400 hover:bg-green-400/10 rounded"><Save className="w-3.5 h-3.5" /></button>
-                ) : (
-                  <button onClick={() => startEdit(item)} className="p-1.5 text-white/30 hover:text-white rounded"><Edit2 className="w-3.5 h-3.5" /></button>
-                )}
+                <button onClick={() => openEditModal(item)} className="p-1.5 text-white/30 hover:text-white rounded"><Edit2 className="w-3.5 h-3.5" /></button>
                 <button onClick={async () => { if(confirm("삭제할까요?")) { await supabase.from("schedules").delete().eq("id", item.id); fetchSchedules(); } }} className="p-1.5 text-white/20 hover:text-red-400 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             </div>
@@ -193,26 +198,32 @@ export function TodaySchedule() {
         })}
       </div>
 
-      {/* 일정 추가/수정 모달 */}
+      {/* 통합 팝업 모달 (추가/수정 공용) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
-          <div className="absolute inset-0" onClick={() => setIsModalOpen(false)} />
+          <div className="absolute inset-0" onClick={closeModal} />
           <div className="relative w-full max-w-md bg-[#0d0d0d] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-light tracking-widest text-white mb-8 uppercase">New Schedule</h3>
-            <form onSubmit={handleAdd} className="space-y-6">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-lg font-light tracking-widest text-white uppercase">
+                {editingItem ? "Edit Schedule" : "New Schedule"}
+              </h3>
+              <button onClick={closeModal} className="text-white/20 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase font-mono">Title</label>
-                <input name="title" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm focus:outline-none focus:border-white/30" required />
+                <input name="title" defaultValue={editingItem?.title} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm focus:outline-none focus:border-white/30" required placeholder="무엇을 하나요?" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                    <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase font-mono">Start</label>
-                   <input name="start" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
+                   <input name="start" type="time" defaultValue={editingItem?.start_time?.slice(0,5)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
                 </div>
                 <div className="space-y-2">
                    <label className="text-[10px] font-bold text-white/20 tracking-widest uppercase font-mono">End</label>
-                   <input name="end" type="time" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
+                   <input name="end" type="time" defaultValue={editingItem?.end_time?.slice(0,5)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm" required />
                 </div>
               </div>
 
@@ -223,14 +234,14 @@ export function TodaySchedule() {
                     <Repeat className="w-4 h-4 text-blue-400" />
                     <span className="text-xs text-white/60">Recurrence</span>
                   </div>
-                  <input type="checkbox" name="is_recurring" className="w-4 h-4 rounded border-white/10 bg-white/5 accent-white" />
+                  <input type="checkbox" name="is_recurring" defaultChecked={editingItem?.is_recurring} className="w-4 h-4 rounded border-white/10 bg-white/5 accent-white" />
                 </div>
                 <div className="flex gap-4">
-                  <select name="recurrence_period" className="bg-black/40 text-[10px] text-white/80 border border-white/10 rounded-lg px-2 py-1 outline-none">
+                  <select name="recurrence_period" defaultValue={editingItem?.recurrence_period || "daily"} className="bg-black/40 text-[10px] text-white/80 border border-white/10 rounded-lg px-2 py-1 outline-none">
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
                   </select>
-                  <input type="date" name="recurrence_until" className="bg-black/40 text-[10px] text-white/80 border border-white/10 rounded-lg px-2 py-1 outline-none flex-1" />
+                  <input type="date" name="recurrence_until" defaultValue={editingItem?.recurrence_until} className="bg-black/40 text-[10px] text-white/80 border border-white/10 rounded-lg px-2 py-1 outline-none flex-1" />
                 </div>
               </div>
 
@@ -240,14 +251,16 @@ export function TodaySchedule() {
                 <div className="flex justify-between">
                   {colors.map((c) => (
                     <label key={c.name} className="relative cursor-pointer group">
-                      <input type="radio" name="color" value={c.value} className="sr-only peer" defaultChecked={c.name === 'Default'} />
-                      <div className="w-8 h-8 rounded-full border border-white/10 transition-all peer-checked:scale-125 peer-checked:border-white" style={{ backgroundColor: c.value }} />
+                      <input type="radio" name="color" value={c.value} className="sr-only peer" defaultChecked={editingItem ? editingItem.color === c.value : c.name === 'Default'} />
+                      <div className="w-8 h-8 rounded-full border border-white/10 transition-all peer-checked:scale-125 peer-checked:border-white shadow-sm" style={{ backgroundColor: c.value }} />
                     </label>
                   ))}
                 </div>
               </div>
 
-              <button type="submit" className="w-full py-5 bg-white text-black font-bold rounded-2xl text-[11px] tracking-[0.3em] hover:bg-gray-200 transition-colors">SAVE TO TIMELINE</button>
+              <button type="submit" className="w-full py-5 bg-white text-black font-bold rounded-2xl text-[11px] tracking-[0.3em] hover:bg-gray-200 transition-all shadow-xl">
+                {editingItem ? "UPDATE SCHEDULE" : "SAVE TO TIMELINE"}
+              </button>
             </form>
           </div>
         </div>
