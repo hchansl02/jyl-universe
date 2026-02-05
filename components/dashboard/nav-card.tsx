@@ -1,10 +1,10 @@
 import Link from "next/link"
-import { Folder, Calendar, Book, Lightbulb, ArrowUpRight } from "lucide-react"
+import { Folder, CalendarRange, CalendarDays, Lightbulb, Calendar, Book, ArrowUpRight } from "lucide-react"
 
 interface NavCardProps {
   title: string
-  // [수정됨] 헷갈리는 'calendar' 삭제 -> 'weekly', 'library' 로 변경
-  icon: "project" | "weekly" | "library" | "thoughts"
+  // [수정됨] weekly, books 타입을 추가해서 에러를 막았습니다.
+  icon: "project" | "yearly" | "monthly" | "thoughts" | "weekly" | "books"
   description: string
   href: string
   count: number
@@ -15,12 +15,14 @@ export function NavCard({ title, icon, description, href, count }: NavCardProps)
   // [수정됨] 아이콘 연결표
   const iconMap = {
     project: Folder,
-    weekly: Calendar, // 이름은 weekly지만, 그림은 달력 모양(Calendar) 사용
-    library: Book,    // 이름은 library, 그림은 책 모양(Book) 사용
+    yearly: CalendarRange,
+    monthly: CalendarDays,
     thoughts: Lightbulb,
+    weekly: Calendar, // Weekly Plan용 아이콘
+    books: Book       // Books용 아이콘
   }
 
-  // 선택된 아이콘 꺼내기 (혹시 오타나면 기본값으로 Folder)
+  // 선택된 아이콘 꺼내기 (안전장치 포함)
   const Icon = iconMap[icon] || Folder
 
   return (
