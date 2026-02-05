@@ -12,24 +12,25 @@ export default function YearlyPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // DB 컬럼명에 맞춘 타입 정의 (content, is_completed, position)
   interface Plan {
     id: number;
     content: string;
-    is_done: boolean;
-    order_index: number;
+    is_completed: boolean | null;
+    position: number;
   }
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [newPlan, setNewPlan] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 1. 데이터 불러오기 (테이블 이름: yearly_plans 로 수정)
+  // 1. 데이터 불러오기
   const fetchPlans = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("yearly_plans") // [수정됨] 복수형 이름으로 변경
+      .from("yearly_plans")
       .select("*")
-      .order("order_index", { ascending: true });
+      .order("position", { ascending: true }); // order_index 대신 position 사용
     
     if (error) {
       console.error("데이터 로드 에러:", error);
@@ -48,22 +49,30 @@ export default function YearlyPage() {
     e.preventDefault();
     if (!newPlan.trim()) return;
 
-    const nextOrder = plans.length > 0 ? Math.max(...plans.map(p => p.order_index)) + 1 : 0;
+    // 현재 가장 큰 position 값 찾기
+    const nextPosition = plans.length > 0 ? Math.max(...plans.map(p => p.position)) + 1 : 0;
     
     const { error } = await supabase
         .from("yearly_plans")
-        .insert([{ content: newPlan, order_index: nextOrder, is_done: false }]);
+        .insert([{ 
+            content: newPlan, 
+            position: nextPosition, 
+            is_completed: false 
+        }]);
     
     if (!error) {
         setNewPlan("");
         fetchPlans();
+    } else {
+        console.error("추가 에러:", error.message);
     }
   };
 
   // 3. 체크 토글
-  const toggleDone = async (id: number, currentStatus: boolean) => {
-    setPlans(plans.map(p => p.id === id ? { ...p, is_done: !currentStatus } : p));
-    await supabase.from("yearly_plans").update({ is_done: !currentStatus }).eq("id", id);
+  const toggleDone = async (id: number, currentStatus: boolean | null) => {
+    const newStatus = !currentStatus;
+    setPlans(plans.map(p => p.id === id ? { ...p, is_completed: newStatus } : p));
+    await supabase.from("yearly_plans").update({ is_completed: newStatus }).eq("id", id);
   };
 
   // 4. 삭제
@@ -85,29 +94,28 @@ export default function YearlyPage() {
     const [reorderedItem] = newPlans.splice(sourceIndex, 1);
     newPlans.splice(destinationIndex, 0, reorderedItem);
 
-    const updatedPlans = newPlans.map((item, index) => ({ ...item, order_index: index }));
+    const updatedPlans = newPlans.map((item, index) => ({ ...item, position: index }));
     setPlans(updatedPlans);
 
-    // 전체 순서 업데이트
+    // 전체 순서 업데이트 (position 컬럼 사용)
     await supabase.from("yearly_plans").upsert(
         updatedPlans.map(p => ({ 
           id: p.id, 
           content: p.content, 
-          is_done: p.is_done, 
-          order_index: p.order_index 
+          is_completed: p.is_completed, 
+          position: p.position 
         })),
         { onConflict: 'id' }
     );
   };
 
-  const completedCount = plans.filter(p => p.is_done).length;
+  const completedCount = plans.filter(p => p.is_completed).length;
   const progress = plans.length > 0 ? Math.round((completedCount / plans.length) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-6">
-      {/* 뒤로가기 버튼 */}
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
+        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-bold tracking-widest uppercase">Back to Dashboard</span>
         </Link>
@@ -135,9 +143,9 @@ export default function YearlyPage() {
 
       <div className="w-full max-w-2xl">
         {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-white/20">
+            <div className="flex flex-col items-center justify-center py-20 text-white/20 font-mono tracking-widest text-xs">
                 <Loader2 className="w-6 h-6 animate-spin mb-4" />
-                <p className="text-xs font-mono tracking-widest">CONNECTING TO DATABASE...</p>
+                LOADING DATABASE...
             </div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
@@ -160,12 +168,12 @@ export default function YearlyPage() {
                                             <GripVertical className="w-4 h-4" />
                                         </div>
 
-                                        <button onClick={() => toggleDone(plan.id, plan.is_done)} className="text-white/20 hover:text-white transition-colors">
-                                            {plan.is_done ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Circle className="w-5 h-5" />}
+                                        <button onClick={() => toggleDone(plan.id, plan.is_completed)} className="text-white/20 hover:text-white transition-colors">
+                                            {plan.is_completed ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Circle className="w-5 h-5" />}
                                         </button>
 
                                         <div className="flex-1">
-                                            <span className={`text-sm font-light tracking-wide transition-all ${plan.is_done ? "text-white/30 line-through" : "text-white/90"}`}>
+                                            <span className={`text-sm font-light tracking-wide transition-all ${plan.is_completed ? "text-white/30 line-through" : "text-white/90"}`}>
                                                 {plan.content}
                                             </span>
                                         </div>
