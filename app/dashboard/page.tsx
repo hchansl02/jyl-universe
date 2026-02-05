@@ -31,10 +31,10 @@ export default function DashboardPage() {
             <CenterTasks />
           </div>
 
-          {/* 하단 네비게이션 카드 */}
-          <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+          {/* 하단 네비게이션 카드 (6개 배치 - 3열 구조) */}
+          <div className="w-full grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5">
             
-            {/* 1. PROJECT */}
+            {/* 1. PROJECT (기존 유지) */}
             <NavCard
               title="PROJECT"
               icon="project"
@@ -43,7 +43,7 @@ export default function DashboardPage() {
               count={4}
             />
 
-            {/* 2. WEEKLY PLAN (icon 이름을 weekly로 변경) */}
+            {/* 2. WEEKLY PLAN (추가됨) */}
             <NavCard
               title="WEEKLY PLAN"
               icon="weekly" 
@@ -52,22 +52,40 @@ export default function DashboardPage() {
               count={7} 
             />
 
-            {/* 3. LIBRARY (icon 이름을 library로 변경) */}
+            {/* 3. BOOKS (Library -> BOOKS로 이름 변경) */}
             <NavCard
-              title="LIBRARY"
-              icon="library"
-              description="Book Archive"
+              title="BOOKS"
+              icon="books"
+              description="Book Archive & Reviews"
               href="/dashboard/books"
               count={12} 
             />
 
-            {/* 4. THOUGHTS */}
+            {/* 4. YEARLY PLAN (복구됨) */}
+            <NavCard
+              title="YEARLY PLAN"
+              icon="yearly"
+              description="Long-term goals"
+              href="/yearly"
+              count={5}
+            />
+
+            {/* 5. MONTHLY PLAN (복구됨) */}
+            <NavCard
+              title="MONTHLY PLAN"
+              icon="monthly"
+              description="This month's priorities"
+              href="/monthly"
+              count={8}
+            />
+
+            {/* 6. THOUGHTS (기존 유지) */}
             <NavCard
               title="THOUGHTS"
               icon="thoughts"
               description="Ideas & reflections"
               href="/thoughts"
-              count={0}
+              count={12}
             />
           </div>
         </div>
