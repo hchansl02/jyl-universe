@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Plus, GripVertical, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, GripVertical, CheckCircle2, Circle, Trash2, Loader2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import Link from "next/link";
 
@@ -23,18 +23,25 @@ export default function YearlyPage() {
   const [newPlan, setNewPlan] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 1. 데이터 불러오기
+  // 1. 데이터 불러오기 (테이블 이름: yearly_plans 로 수정)
   const fetchPlans = async () => {
-    const { data } = await supabase
-      .from("yearly_plan")
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("yearly_plans") // [수정됨] 복수형 이름으로 변경
       .select("*")
       .order("order_index", { ascending: true });
     
-    if (data) setPlans(data);
+    if (error) {
+      console.error("데이터 로드 에러:", error);
+    } else if (data) {
+      setPlans(data as Plan[]);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchPlans(); }, []);
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
   // 2. 목표 추가
   const addPlan = async (e: React.FormEvent) => {
@@ -44,8 +51,8 @@ export default function YearlyPage() {
     const nextOrder = plans.length > 0 ? Math.max(...plans.map(p => p.order_index)) + 1 : 0;
     
     const { error } = await supabase
-        .from("yearly_plan")
-        .insert([{ content: newPlan, order_index: nextOrder }]);
+        .from("yearly_plans")
+        .insert([{ content: newPlan, order_index: nextOrder, is_done: false }]);
     
     if (!error) {
         setNewPlan("");
@@ -56,18 +63,18 @@ export default function YearlyPage() {
   // 3. 체크 토글
   const toggleDone = async (id: number, currentStatus: boolean) => {
     setPlans(plans.map(p => p.id === id ? { ...p, is_done: !currentStatus } : p));
-    await supabase.from("yearly_plan").update({ is_done: !currentStatus }).eq("id", id);
+    await supabase.from("yearly_plans").update({ is_done: !currentStatus }).eq("id", id);
   };
 
   // 4. 삭제
   const deletePlan = async (id: number) => {
     if (confirm("삭제하시겠습니까?")) {
       setPlans(plans.filter(p => p.id !== id));
-      await supabase.from("yearly_plan").delete().eq("id", id);
+      await supabase.from("yearly_plans").delete().eq("id", id);
     }
   };
 
-  // 5. 드래그 앤 드롭 정렬
+  // 5. 드래그 앤 드롭 정렬 저장
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     const sourceIndex = result.source.index;
@@ -81,32 +88,36 @@ export default function YearlyPage() {
     const updatedPlans = newPlans.map((item, index) => ({ ...item, order_index: index }));
     setPlans(updatedPlans);
 
-    await supabase.from("yearly_plan").upsert(
-        updatedPlans.map(p => ({ id: p.id, content: p.content, is_done: p.is_done, order_index: p.order_index }))
+    // 전체 순서 업데이트
+    await supabase.from("yearly_plans").upsert(
+        updatedPlans.map(p => ({ 
+          id: p.id, 
+          content: p.content, 
+          is_done: p.is_done, 
+          order_index: p.order_index 
+        })),
+        { onConflict: 'id' }
     );
   };
 
-  // 진행률 계산
   const completedCount = plans.filter(p => p.is_done).length;
   const progress = plans.length > 0 ? Math.round((completedCount / plans.length) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-6">
-      {/* 뒤로가기 버튼 (추가됨) */}
+      {/* 뒤로가기 버튼 */}
       <div className="absolute top-8 left-8 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs font-bold tracking-widest">BACK TO DASHBOARD</span>
+          <span className="text-xs font-bold tracking-widest uppercase">Back to Dashboard</span>
         </Link>
       </div>
 
-      {/* 헤더 영역 */}
       <header className="text-center mb-10 mt-4">
         <p className="text-[10px] font-mono text-white/40 tracking-[0.4em] uppercase mb-2">Yearly Plan</p>
         <h1 className="text-5xl font-light tracking-tight text-white">2026</h1>
       </header>
 
-      {/* 진행바 영역 */}
       <div className="w-full max-w-2xl mb-12">
         <div className="flex justify-between items-end mb-2 px-1">
             <span className="text-[10px] font-bold text-white/40 tracking-widest">ANNUAL PROGRESS</span>
@@ -122,9 +133,14 @@ export default function YearlyPage() {
         </div>
       </div>
 
-      {/* 리스트 영역 (Drag & Drop) */}
       <div className="w-full max-w-2xl">
-        <DragDropContext onDragEnd={onDragEnd}>
+        {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-white/20">
+                <Loader2 className="w-6 h-6 animate-spin mb-4" />
+                <p className="text-xs font-mono tracking-widest">CONNECTING TO DATABASE...</p>
+            </div>
+        ) : (
+          <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="yearly-list">
                 {(provided) => (
                     <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
@@ -136,28 +152,24 @@ export default function YearlyPage() {
                                         {...provided.draggableProps}
                                         className={`group relative flex items-center gap-4 p-4 rounded-xl border transition-all ${
                                             snapshot.isDragging 
-                                            ? "bg-white/10 border-white/30 z-50 shadow-2xl" 
+                                            ? "bg-white/10 border-white/30 z-50 shadow-2xl scale-[1.02]" 
                                             : "bg-white/[0.03] border-white/5 hover:border-white/10"
                                         }`}
                                     >
-                                        {/* 드래그 핸들 */}
-                                        <div {...provided.dragHandleProps} className="text-white/10 hover:text-white/50 cursor-grab active:cursor-grabbing transition-colors">
+                                        <div {...provided.dragHandleProps} className="text-white/10 hover:text-white/50 cursor-grab active:cursor-grabbing">
                                             <GripVertical className="w-4 h-4" />
                                         </div>
 
-                                        {/* 체크 버튼 */}
                                         <button onClick={() => toggleDone(plan.id, plan.is_done)} className="text-white/20 hover:text-white transition-colors">
                                             {plan.is_done ? <CheckCircle2 className="w-5 h-5 text-white" /> : <Circle className="w-5 h-5" />}
                                         </button>
 
-                                        {/* 내용 */}
                                         <div className="flex-1">
                                             <span className={`text-sm font-light tracking-wide transition-all ${plan.is_done ? "text-white/30 line-through" : "text-white/90"}`}>
                                                 {plan.content}
                                             </span>
                                         </div>
 
-                                        {/* 삭제 버튼 (호버시 표시) */}
                                         <button 
                                             onClick={() => deletePlan(plan.id)}
                                             className="opacity-0 group-hover:opacity-100 text-white/10 hover:text-red-400 transition-all px-2"
@@ -172,10 +184,10 @@ export default function YearlyPage() {
                     </div>
                 )}
             </Droppable>
-        </DragDropContext>
+          </DragDropContext>
+        )}
 
-        {/* 입력창 */}
-        <form onSubmit={addPlan} className="mt-6 relative group">
+        <form onSubmit={addPlan} className="mt-8 relative group">
             <input 
                 type="text" 
                 value={newPlan}
@@ -190,13 +202,6 @@ export default function YearlyPage() {
                 <Plus className="w-4 h-4" />
             </button>
         </form>
-
-        {/* 로딩 표시 */}
-        {loading && (
-            <div className="text-center py-10 text-white/20 text-xs animate-pulse">
-                Loading database...
-            </div>
-        )}
       </div>
     </div>
   );
