@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ArrowLeft, Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 export default function WeeklyPlanPage() {
@@ -11,7 +11,6 @@ export default function WeeklyPlanPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // 데이터 타입 정의
   interface Plan {
     id: number;
     day: string;
@@ -21,6 +20,8 @@ export default function WeeklyPlanPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [newPlan, setNewPlan] = useState({ day: "Mon", content: "" });
+  
+  // 요일 순서 정렬을 위한 배열
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   // 데이터 불러오기
@@ -28,7 +29,7 @@ export default function WeeklyPlanPage() {
     const { data } = await supabase
       .from("weekly_plan")
       .select("*")
-      .order("id", { ascending: true });
+      .order("id", { ascending: true }); // 생성순 정렬 (나중에 요일별 정렬 처리)
     
     if (data) setPlans(data);
   };
@@ -41,36 +42,45 @@ export default function WeeklyPlanPage() {
     if (!newPlan.content.trim()) return;
 
     await supabase.from("weekly_plan").insert([newPlan]);
-    setNewPlan({ ...newPlan, content: "" }); // 입력창 초기화
-    fetchPlans(); // 목록 갱신
-  };
-
-  // 체크 토글 (완료/미완료)
-  const toggleDone = async (id: number, currentStatus: boolean) => {
-    // 낙관적 업데이트 (화면 먼저 바꾸고 DB 통신)
-    setPlans(plans.map(p => p.id === id ? { ...p, is_done: !currentStatus } : p));
-    
-    await supabase.from("weekly_plan").update({ is_done: !currentStatus }).eq("id", id);
-    fetchPlans(); 
+    setNewPlan({ ...newPlan, content: "" }); // 내용만 초기화 (요일은 유지)
+    fetchPlans();
   };
 
   // 삭제
   const deletePlan = async (id: number) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
+    if (confirm("삭제하시겠습니까?")) {
       await supabase.from("weekly_plan").delete().eq("id", id);
       fetchPlans();
     }
   };
 
+  // 요일별 색상 (시각적 구분용)
+  const getDayColor = (day: string) => {
+    switch(day) {
+      case 'Mon': return 'text-red-400 bg-red-400/10 border-red-400/20';
+      case 'Tue': return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
+      case 'Wed': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
+      case 'Thu': return 'text-green-400 bg-green-400/10 border-green-400/20';
+      case 'Fri': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
+      case 'Sat': return 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20';
+      case 'Sun': return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
+      default: return 'text-white bg-white/10';
+    }
+  };
+
+  // 리스트 정렬: 요일 순서대로 (Mon -> Sun)
+  const sortedPlans = [...plans].sort((a, b) => {
+    return days.indexOf(a.day) - days.indexOf(b.day);
+  });
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center pt-10 px-6 pb-20">
-      {/* 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none">
-         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
+         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03)_0%,_transparent_50%)]" />
       </div>
 
       {/* 헤더 */}
-      <div className="w-full max-w-6xl flex items-center justify-between mb-10 z-10">
+      <div className="w-full max-w-3xl flex items-center justify-between mb-10 z-10">
         <Link href="/dashboard" className="flex items-center gap-2 text-white/50 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs font-bold tracking-widest">BACK</span>
@@ -79,75 +89,61 @@ export default function WeeklyPlanPage() {
         <div className="w-10" />
       </div>
 
-      {/* 입력창 (상단 고정) */}
-      <form onSubmit={addPlan} className="w-full max-w-2xl flex gap-2 mb-12 z-10">
-        <select 
-          value={newPlan.day} 
-          onChange={(e) => setNewPlan({...newPlan, day: e.target.value})}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none cursor-pointer hover:bg-white/10 transition-colors"
-        >
-          {days.map(day => <option key={day} value={day} className="bg-[#0a0a0a] text-white">{day}</option>)}
-        </select>
-        <input 
-          type="text" 
-          value={newPlan.content}
-          onChange={(e) => setNewPlan({...newPlan, content: e.target.value})}
-          placeholder="계획을 입력하세요 (예: 하체 운동, 독서 30분...)"
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 transition-all placeholder:text-gray-600"
-        />
-        <button type="submit" className="p-3 bg-white text-black rounded-xl hover:bg-gray-200 transition-colors">
-          <Plus className="w-5 h-5" />
-        </button>
-      </form>
+      {/* 입력창 (요일 선택 + 내용 입력) */}
+      <div className="w-full max-w-3xl z-10 mb-8 sticky top-4">
+        <form onSubmit={addPlan} className="flex gap-2 bg-[#0a0a0a]/80 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-xl">
+          <select 
+            value={newPlan.day} 
+            onChange={(e) => setNewPlan({...newPlan, day: e.target.value})}
+            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono focus:outline-none cursor-pointer hover:bg-white/10 transition-colors"
+          >
+            {days.map(day => <option key={day} value={day} className="bg-[#0a0a0a] text-white">{day}</option>)}
+          </select>
+          <input 
+            type="text" 
+            value={newPlan.content}
+            onChange={(e) => setNewPlan({...newPlan, content: e.target.value})}
+            placeholder="Routine Content..."
+            className="flex-1 bg-transparent px-4 py-3 text-white text-sm focus:outline-none placeholder:text-white/20"
+          />
+          <button type="submit" className="px-6 bg-white text-black rounded-xl hover:bg-gray-200 transition-colors font-bold text-xs tracking-wider">
+            ADD
+          </button>
+        </form>
+      </div>
 
-      {/* 요일별 카드 리스트 (그리드 레이아웃) */}
-      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 z-10">
-        {days.map((day) => {
-          // 해당 요일의 계획만 필터링
-          const dayPlans = plans.filter(p => p.day === day);
-          
-          return (
-            <div key={day} className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 min-h-[200px] flex flex-col hover:border-white/20 transition-colors">
-              <h3 className="text-sm font-bold text-blue-400 mb-5 tracking-widest border-b border-white/5 pb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                {day.toUpperCase()}
-              </h3>
-              
-              <div className="space-y-3 flex-1">
-                {dayPlans.length > 0 ? (
-                  dayPlans.map((plan) => (
-                    <div key={plan.id} className="group flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      {/* 체크 버튼 */}
-                      <button 
-                        onClick={() => toggleDone(plan.id, plan.is_done)} 
-                        className={`mt-0.5 transition-colors ${plan.is_done ? "text-green-500" : "text-white/20 hover:text-green-400"}`}
-                      >
-                        {plan.is_done ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                      </button>
-                      
-                      {/* 내용 */}
-                      <span className={`text-sm flex-1 leading-snug break-words transition-all ${plan.is_done ? "text-white/20 line-through decoration-white/20" : "text-white/90"}`}>
-                        {plan.content}
-                      </span>
-                      
-                      {/* 삭제 버튼 (호버 시 등장) */}
-                      <button 
-                        onClick={() => deletePlan(plan.id)} 
-                        className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-xs text-white/10 italic">No plans</p>
-                  </div>
-                )}
+      {/* 세로 리스트 */}
+      <div className="w-full max-w-3xl space-y-3 z-10">
+        {sortedPlans.length > 0 ? (
+          sortedPlans.map((plan) => (
+            <div key={plan.id} className="group flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.04] transition-all">
+              <div className="flex items-center gap-4">
+                {/* 요일 뱃지 */}
+                <span className={`text-[10px] font-bold font-mono px-2 py-1 rounded border min-w-[40px] text-center ${getDayColor(plan.day)}`}>
+                  {plan.day}
+                </span>
+                
+                {/* 내용 */}
+                <span className="text-sm text-white/90 font-light">
+                  {plan.content}
+                </span>
               </div>
+
+              {/* 삭제 버튼 */}
+              <button 
+                onClick={() => deletePlan(plan.id)} 
+                className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all p-2"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
-          )
-        })}
+          ))
+        ) : (
+          <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
+            <CalendarDays className="w-8 h-8 text-white/20 mx-auto mb-3" />
+            <p className="text-xs text-white/30">루틴이 없습니다.</p>
+          </div>
+        )}
       </div>
     </div>
   );
