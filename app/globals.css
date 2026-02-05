@@ -41,3 +41,23 @@ body {
     text-wrap: balance;
   }
 }
+
+/* 전역 스크롤바 스타일링 */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px; /* 훨씬 얇게 수정 */
+  }
+
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thumb-white\/10::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+
+  .scrollbar-thumb-white\/20::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
