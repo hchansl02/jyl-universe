@@ -35,6 +35,7 @@ export default function BookPage() {
 
   const categories = ["인문학", "문학", "경제/경영", "취미", "전공 (마케팅/영상)"];
 
+  // 1. 데이터 불러오기 (순서대로 정렬)
   const fetchBooks = async () => {
     const { data } = await supabase
       .from("books")
@@ -46,10 +47,12 @@ export default function BookPage() {
 
   useEffect(() => { fetchBooks(); }, []);
 
+  // 2. 책 추가
   const addBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBook.title.trim()) return;
 
+    // 현재 가장 큰 순서 번호 찾기 (없으면 0)
     const nextOrder = books.length > 0 ? Math.max(...books.map(b => b.order_index)) + 1 : 0;
 
     const bookToSave = {
@@ -66,6 +69,50 @@ export default function BookPage() {
     fetchBooks();
   };
 
+  // 3. 드래그 앤 드롭 (순서 저장 로직 수정됨)
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    // 위치가 안 바뀌었으면 종료
+    if (sourceIndex === destinationIndex) return;
+
+    // 1. 배열 순서 재배치
+    const newBooks = Array.from(books);
+    const [reorderedItem] = newBooks.splice(sourceIndex, 1);
+    newBooks.splice(destinationIndex, 0, reorderedItem);
+
+    // 2. order_index 재할당 (0, 1, 2...)
+    const updatedBooks = newBooks.map((book, index) => ({
+      ...book,
+      order_index: index
+    }));
+
+    // 3. UI 즉시 업데이트
+    setBooks(updatedBooks);
+
+    // 4. DB에 확실하게 저장 (모든 필드 포함 + onConflict 설정)
+    // id가 같으면 덮어쓰라는 옵션을 줘서 에러 방지
+    const { error } = await supabase.from("books").upsert(
+        updatedBooks.map(b => ({
+            id: b.id,
+            title: b.title,
+            author: b.author,
+            category: b.category,
+            status: b.status,
+            order_index: b.order_index
+        })),
+        { onConflict: 'id' }
+    );
+
+    if (error) {
+        console.error("순서 저장 실패:", error);
+        alert("순서 저장에 실패했습니다.");
+    }
+  };
+
+  // 4. 수정 관련 함수들
   const startEditing = (book: BookItem) => {
     setEditingId(book.id);
     setEditForm({ title: book.title, author: book.author, category: book.category });
@@ -85,27 +132,7 @@ export default function BookPage() {
     await supabase.from("books").update(editForm).eq("id", editingId);
   };
 
-  const onDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
-    const sourceIndex = result.source.index;
-    const destinationIndex = result.destination.index;
-    if (sourceIndex === destinationIndex) return;
-
-    const newBooks = Array.from(books);
-    const [reorderedItem] = newBooks.splice(sourceIndex, 1);
-    newBooks.splice(destinationIndex, 0, reorderedItem);
-
-    const updatedBooks = newBooks.map((book, index) => ({
-      ...book,
-      order_index: index
-    }));
-
-    setBooks(updatedBooks);
-    await supabase.from("books").upsert(
-        updatedBooks.map(b => ({ id: b.id, order_index: b.order_index }))
-    );
-  };
-
+  // 5. 상태 및 삭제
   const toggleStatus = async (id: number, currentStatus: string) => {
     const newStatus = currentStatus === "Reading" ? "Finished" : "Reading";
     setBooks(books.map(b => b.id === id ? { ...b, status: newStatus as any } : b));
@@ -119,6 +146,7 @@ export default function BookPage() {
     }
   };
 
+  // 카테고리 색상
   const getCategoryColor = (cat: string) => {
     switch(cat) {
         case "인문학": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
