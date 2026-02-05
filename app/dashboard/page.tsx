@@ -3,7 +3,6 @@ import { CenterTasks } from "@/components/dashboard/center-tasks";
 import { NavCard } from "@/components/dashboard/nav-card";
 import { Orbit } from "lucide-react";
 
-// 페이지 전체를 나타내는 기본 컴포넌트
 export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start relative overflow-hidden">
@@ -27,42 +26,42 @@ export default function DashboardPage() {
         </header>
 
         <div className="flex flex-col items-center gap-8">
-          {/* 실제 DB와 연결된 CenterTasks 컴포넌트 */}
+          {/* 중앙: 투두 리스트 */}
           <div className="w-full max-w-2xl">
             <CenterTasks />
           </div>
 
-          {/* 하단 네비게이션 카드 영역 (수정됨) */}
+          {/* 하단 네비게이션 카드 */}
           <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
             
-            {/* 1. PROJECT (기존 유지) */}
+            {/* 1. PROJECT */}
             <NavCard
               title="PROJECT"
               icon="project"
-              description="Active development projects"
+              description="Active development"
               href="/dashboard/project"
               count={4}
             />
 
-            {/* 2. WEEKLY PLAN (추가됨) */}
+            {/* 2. WEEKLY PLAN (icon 이름을 weekly로 변경) */}
             <NavCard
               title="WEEKLY PLAN"
-              icon="calendar" 
+              icon="weekly" 
               description="Routine & Schedules"
               href="/dashboard/weekly"
               count={7} 
             />
 
-            {/* 3. LIBRARY (추가됨 - Book List) */}
+            {/* 3. LIBRARY (icon 이름을 library로 변경) */}
             <NavCard
               title="LIBRARY"
-              icon="book"
-              description="Book Archive & Reviews"
+              icon="library"
+              description="Book Archive"
               href="/dashboard/books"
               count={12} 
             />
 
-            {/* 4. THOUGHTS (기존 유지) */}
+            {/* 4. THOUGHTS */}
             <NavCard
               title="THOUGHTS"
               icon="thoughts"
