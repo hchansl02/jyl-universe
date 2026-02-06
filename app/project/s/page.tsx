@@ -10,14 +10,15 @@ export default function ProjectSPage() {
     { id: "02", name: "BETA", sub: "소설", symbol: "β", href: "/project/s/beta" },
     { id: "03", name: "GAMMA", sub: "나이 시리즈", symbol: "γ", href: "/project/s/gamma" },
     { id: "04", name: "DELTA", sub: "시", symbol: "δ", href: "/project/s/delta" },
-    { id: "05", name: "ZETA", sub: "매거진", symbol: "ζ", href: "/project/s/zeta" },
+    // ZETA 링크를 구글 드라이브로 변경
+    { id: "05", name: "ZETA", sub: "매거진", symbol: "ζ", href: "https://drive.google.com/drive/u/0/folders/11xYeW2EMhfsGSFN_2qPknpvkFEQlsgYS" },
   ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start relative overflow-hidden">
       <SpaceBackground />
 
-      {/* 🔙 뒤로가기 버튼 수정됨 (/dashboard/project) */}
+      {/* 🔙 뒤로가기 버튼 */}
       <div className="fixed top-8 left-8 z-50">
         <Link href="/dashboard/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
@@ -42,7 +43,14 @@ export default function ProjectSPage() {
         {/* 폴더 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
           {categories.map((item) => (
-            <Link key={item.name} href={item.href} className="group">
+            <Link 
+              key={item.name} 
+              href={item.href} 
+              className="group"
+              // http로 시작하는 주소(구글 드라이브)일 경우 새 탭에서 열기
+              target={item.href.startsWith("http") ? "_blank" : undefined}
+              rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+            >
               <div className="relative aspect-[4/5.5] bg-white/[0.015] border border-white/5 rounded-2xl p-7 flex flex-col items-center justify-between transition-all duration-700 hover:bg-white/[0.05] hover:border-white/20 hover:-translate-y-3">
                 
                 {/* 상단 ID */}
