@@ -1,7 +1,7 @@
 "use client";
 
 import { SpaceBackground } from "@/components/dashboard/space-background";
-import { ArrowLeft, FolderOpen, ChevronRight, Orbit } from "lucide-react";
+import { ArrowLeft, ChevronRight, Orbit } from "lucide-react";
 import Link from "next/link";
 
 export default function ProjectSPage() {
@@ -17,9 +17,9 @@ export default function ProjectSPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-start relative overflow-hidden">
       <SpaceBackground />
 
-      {/* 🔙 뒤로가기 버튼 수정됨 */}
+      {/* 🔙 뒤로가기 버튼 수정됨 (/dashboard/project) */}
       <div className="fixed top-8 left-8 z-50">
-        <Link href="/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
+        <Link href="/dashboard/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span className="text-xs font-bold tracking-widest uppercase font-mono">Back to Projects</span>
         </Link>
