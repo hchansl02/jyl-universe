@@ -17,16 +17,16 @@ export default function ProjectSPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-start relative overflow-hidden">
       <SpaceBackground />
 
-      {/* 상단 네비게이션: 뒤로가기 */}
+      {/* 🔙 뒤로가기 버튼 수정됨 */}
       <div className="fixed top-8 left-8 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
+        <Link href="/project" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span className="text-xs font-bold tracking-widest uppercase font-mono">Back to Command</span>
+          <span className="text-xs font-bold tracking-widest uppercase font-mono">Back to Projects</span>
         </Link>
       </div>
 
       <main className="relative z-10 w-full max-w-7xl px-6 pt-24 pb-16">
-        {/* JYL UNIVERSE 로고 스타일 헤더 */}
+        {/* 헤더 */}
         <header className="text-center mb-24">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 mb-6">
             <Orbit className="w-4 h-4 text-white/50 animate-pulse" strokeWidth={1.5} />
@@ -39,19 +39,19 @@ export default function ProjectSPage() {
           </p>
         </header>
 
-        {/* 폴더 그리드 레이아웃 (5컬럼 가로 나열) */}
+        {/* 폴더 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
           {categories.map((item) => (
             <Link key={item.name} href={item.href} className="group">
               <div className="relative aspect-[4/5.5] bg-white/[0.015] border border-white/5 rounded-2xl p-7 flex flex-col items-center justify-between transition-all duration-700 hover:bg-white/[0.05] hover:border-white/20 hover:-translate-y-3">
                 
-                {/* 상단 섹션 */}
+                {/* 상단 ID */}
                 <div className="w-full flex justify-between items-start">
                   <span className="text-[9px] font-mono text-white/15 group-hover:text-white/40 transition-colors">NO.{item.id}</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-white/5 group-hover:bg-white/40 transition-colors" />
                 </div>
 
-                {/* 중앙 로고 (그리스 심볼) */}
+                {/* 중앙 로고 */}
                 <div className="flex flex-col items-center">
                   <div className="text-7xl font-light text-white/[0.03] group-hover:text-white transition-all duration-1000 mb-2 font-serif scale-90 group-hover:scale-110">
                     {item.symbol}
@@ -61,7 +61,7 @@ export default function ProjectSPage() {
                   </h3>
                 </div>
 
-                {/* 하단 섹션 */}
+                {/* 하단 설명 */}
                 <div className="w-full text-center">
                   <p className="text-[10px] text-white/20 group-hover:text-white/60 tracking-widest mb-6 font-light">
                     {item.sub}
@@ -72,7 +72,7 @@ export default function ProjectSPage() {
                   </div>
                 </div>
 
-                {/* 배경 오버레이 장식 */}
+                {/* 호버 이펙트 오버레이 */}
                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
               </div>
             </Link>
