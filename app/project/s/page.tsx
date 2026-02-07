@@ -9,8 +9,9 @@ export default function ProjectSPage() {
     { id: "01", name: "ALPHA", sub: "에세이", symbol: "α", href: "/project/s/alpha" },
     { id: "02", name: "BETA", sub: "소설", symbol: "β", href: "/project/s/beta" },
     { id: "03", name: "GAMMA", sub: "나이 시리즈", symbol: "γ", href: "/project/s/gamma" },
-    { id: "04", name: "DELTA", sub: "시", symbol: "δ", href: "/project/s/delta" },
-    // ZETA 링크를 구글 드라이브로 변경
+    // DELTA 링크를 구글 드라이브로 변경
+    { id: "04", name: "DELTA", sub: "시", symbol: "δ", href: "https://drive.google.com/drive/u/0/folders/18Xc1Wreht36dhIXMRgU6kYqIQzMDLQYl" },
+    // ZETA 링크 (기존 유지)
     { id: "05", name: "ZETA", sub: "매거진", symbol: "ζ", href: "https://drive.google.com/drive/u/0/folders/11xYeW2EMhfsGSFN_2qPknpvkFEQlsgYS" },
   ];
 
@@ -47,7 +48,7 @@ export default function ProjectSPage() {
               key={item.name} 
               href={item.href} 
               className="group"
-              // http로 시작하는 주소(구글 드라이브)일 경우 새 탭에서 열기
+              // 구글 드라이브 링크일 경우 새 탭에서 열기
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
             >
