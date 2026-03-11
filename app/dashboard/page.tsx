@@ -2,7 +2,6 @@
 
 import { SpaceBackground } from "@/components/dashboard/space-background";
 import { CenterTasks } from "@/components/dashboard/center-tasks";
-import { TodaySchedule } from "@/components/dashboard/today-schedule";
 import { NavCard } from "@/components/dashboard/nav-card";
 import { Orbit } from "lucide-react";
 
@@ -13,7 +12,7 @@ export default function DashboardPage() {
 
       <main className="relative z-10 w-full max-w-[1400px] px-6 pt-12 pb-16">
         {/* 상단 제목: 원래 스타일로 복구 */}
-        <header className="text-center mb-10">
+        <header className="text-center mb-10 flex flex-col items-center">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 mb-4">
             <Orbit className="w-4 h-4 text-white/50" strokeWidth={1.5} />
           </div>
@@ -25,13 +24,10 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* 메인 2단 구성 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-          <div className="lg:col-span-5">
+        {/* 메인 단일 구성: 캘린더 제거 및 할 일 목록 중앙 정렬 */}
+        <div className="flex justify-center w-full mb-12">
+          <div className="w-full max-w-xl">
             <CenterTasks />
-          </div>
-          <div className="lg:col-span-7">
-            <TodaySchedule />
           </div>
         </div>
 
